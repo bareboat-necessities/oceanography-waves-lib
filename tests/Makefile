@@ -1,5 +1,5 @@
 CC=g++
-CPPFLAGS=-O3 -funroll-loops -fno-finite-math-only -I./.. -I/usr/include/eigen3
+CPPFLAGS=-O3 -funroll-loops -fno-finite-math-only -I./../src -I/usr/include/eigen3
 
 .PHONY: all
 all:	tests
