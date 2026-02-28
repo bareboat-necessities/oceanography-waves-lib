@@ -1,5 +1,6 @@
 name: build
 on: [push, pull_request]
+
 jobs:
   build:
     name: build (compile tests + data-sim)
@@ -20,11 +21,91 @@ jobs:
       - name: Compile data-sim
         run: make -C data-sim
 
-  build_latex:
+  gen-sim-data:
+    name: generate simulation data
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y make g++ libeigen3-dev
+
+      - name: Generate wave simulation data
+        run: |
+          cd data-sim
+          chmod +x gen_sim_data.sh
+          ./gen_sim_data.sh
+
+      - name: Upload simulation data artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: sim-data-files
+          path: data-sim/*.csv
+          if-no-files-found: error
+
+  gen-plots:
+    name: generate plots
+    needs: gen-sim-data
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y make g++ libeigen3-dev texlive-xetex texlive-latex-recommended texlive-fonts-recommended texlive-latex-extra texlive-fonts-extra dvipng python3-pip
+
+      - name: Download simulation data artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: sim-data-files
+          path: data-sim
+
+      - name: Move data files for plotting
+        run: mv data-sim/*.csv plots/
+
+      - name: Build plot helpers
+        run: make -C plots -j 4
+
+      - name: Generate plot files
+        run: |
+          python3 -m pip install --upgrade pip
+          pip install matplotlib numpy pandas
+          cd plots
+          chmod +x draw_plots.sh
+          ./draw_plots.sh
+
+      - name: Upload plot artifacts (.pgf + png)
+        uses: actions/upload-artifact@v4
+        with:
+          name: plot-files
+          path: |
+            plots/*.pgf
+            plots/*.png
+          if-no-files-found: error
+
+  build_latex:
+    needs: gen-plots
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download plot files
+        uses: actions/download-artifact@v4
+        with:
+          name: plot-files
+          path: plots
+
+      - name: Copy plots into LaTeX folder
+        run: |
+          mkdir -p doc
+          cp plots/*.pgf doc/ || true
+          cp plots/*.png doc/ || true
 
       - name: Compile LaTeX document
         uses: xu-cheng/latex-action@v4
