@@ -1,0 +1,459 @@
+#pragma once
+#pragma GCC optimize ("no-fast-math")
+
+/*
+  Directional Wave Spreading Distributions
+
+  Implements several common directional spreading functions used in oceanography:
+  - Cosine-2s (cos^(2s) law, frequency-independent)
+  - Mitsuyasu (frequency-dependent cos^(2s(f)) law)
+  - Donelan (frequency-dependent cos^(2s(f)) law, different scaling)
+  - Sech² (hyperbolic secant squared)
+  - Gaussian (wrapped normal approximation)
+
+  Copyright: 2025, Mikhail Grushinskiy
+*/
+
+#include <random>
+#include <cmath>
+#include <vector>
+#include <memory>
+#include <numeric>
+#include <utility>
+
+#ifndef PI
+static constexpr double PI = 3.14159265358979323846264338327950288;
+#else
+static constexpr double PI = M_PI;
+#endif
+
+// Base class for directional distributions
+class DirectionalDistribution {
+public:
+    virtual ~DirectionalDistribution() = default;
+
+    // Theoretical spectrum interface
+    //
+    // Evaluate continuous density D(θ; f), normalized so that:
+    //   ∫ D(θ; f) dθ = 1   over [-π, π]
+    //
+    // θ in radians, f = frequency [Hz]
+    virtual double operator()(double theta, double f) const = 0;
+
+    // Return unnormalized discrete weights at frequency f
+    virtual std::vector<double> weights(int M, double f) const = 0;
+
+    // Return normalized weights (trapezoidal integration)
+    // Ensures ∑ wᵢ Δθ ≈ 1
+    std::vector<double> normalized_weights(int M, double f) const {
+        std::vector<double> w = weights(M, f);
+        const double dtheta = 2.0 * PI / M;
+        normalize_weights(w, dtheta);
+        return w;
+    }
+
+    // Return (θ, weight) pairs for direct export/plotting
+    std::vector<std::pair<double,double>> angle_weight_pairs(int M, double f) const {
+        const double dtheta = 2.0 * PI / M;
+        auto w = normalized_weights(M, f);
+
+        std::vector<std::pair<double,double>> result;
+        result.reserve(M);
+
+        for (int m = 0; m < M; ++m) {
+            double theta = -PI + m * dtheta;
+            result.emplace_back(theta, w[m]);
+        }
+        return result;
+    }
+
+    // Principal (mean) direction [rad]
+    virtual double principal_direction_rad() const = 0;
+
+    // Realization interface
+    // Default: all samples go in principal direction
+    virtual std::vector<double> sample_directions(int N_freq, double f) {
+        return std::vector<double>(N_freq, principal_direction_rad());
+    }
+
+    // Convenience: sample one direction per frequency in a batch
+    virtual std::vector<double> sample_directions_for_frequencies(
+        const std::vector<double>& freqs)
+    {
+        std::vector<double> dirs;
+        dirs.reserve(freqs.size());
+        for (double f : freqs) {
+            auto d = sample_directions(1, f);
+            dirs.push_back(d[0]);
+        }
+        return dirs;
+    }
+
+protected:
+    // Normalize weights with trapezoidal rule:
+    // ∫ D(θ) dθ ≈ Δθ [½w₀ + w₁ + … + wₙ₋₂ + ½wₙ₋₁]
+    static void normalize_weights(std::vector<double>& w, double dtheta) {
+        if (w.empty()) return;
+
+        double sum = 0.0;
+        sum += 0.5 * w.front();
+        sum += 0.5 * w.back();
+        for (size_t i = 1; i + 1 < w.size(); ++i) {
+            sum += w[i];
+        }
+        sum *= dtheta;
+
+        if (sum > 0.0) {
+            for (auto &val : w) {
+                val /= sum;
+            }
+        }
+    }
+
+    // Wrap an angle into [-π, π]
+    static double wrap_to_pi(double theta) noexcept {
+        theta = std::fmod(theta + PI, 2.0 * PI);
+        if (theta < 0.0) theta += 2.0 * PI;
+        return theta - PI;
+    }
+
+    // Numerically stable cos^(exp) for cosval ∈ [−1, 1]
+    static double stable_pow_cos(double cosval, double exp) noexcept {
+        if (cosval <= 0.0) return 0.0;
+        return std::exp(exp * std::log(cosval));
+    }
+
+    static double cosine2s_norm(double s_f) noexcept {
+        return std::exp(std::lgamma(s_f + 1.0)
+                      - std::lgamma(s_f + 0.5)
+                      - 0.5 * std::log(PI)
+                      - std::log(2.0));
+    }
+
+    // Discrete cosine-2s weights helper
+    //
+    // Formula:
+    //   D(θ; s) = Cₛ · cos^(2s)((θ − θ₀)/2)
+    //
+    // Normalization constant:
+    //   Cₛ = Γ(s+1) / (2 √π Γ(s+½))
+    //
+    // Returns unnormalized discrete weights for M angles.
+    static std::vector<double> cosine2s_weights(
+        int M, double f, double s_f, double mean_dir_rad)
+    {
+        std::vector<double> spread(M);
+        const double dtheta = 2.0 * PI / M;
+        double norm = cosine2s_norm(s_f);
+
+        for (int m = 0; m < M; ++m) {
+            double theta = -PI + m * dtheta;
+            double dtheta_rel = theta - mean_dir_rad;
+            spread[m] = norm * stable_pow_cos(std::cos(0.5 * dtheta_rel), 2.0 * s_f);
+        }
+        return spread;
+    }
+
+    // Generic rejection sampler for any distribution
+    // Requires max_val ≥ maxθ D(θ; f)
+    template<typename Dist>
+    static std::vector<double> rejection_sample_generic(
+        int N, double f, double max_val,
+        const Dist& dist, std::mt19937& rng)
+    {
+        std::uniform_real_distribution<double> angle(-PI, PI);
+        std::uniform_real_distribution<double> u01(0.0, 1.0);
+
+        std::vector<double> dirs;
+        dirs.reserve(N);
+
+        while (dirs.size() < static_cast<size_t>(N)) {
+            double theta = angle(rng);
+            if (u01(rng) * max_val <= dist(theta, f)) {
+                dirs.push_back(theta);
+            }
+        }
+        return dirs;
+    }
+
+    // Gaussian sampler with wrapping into [−π, π]
+    static std::vector<double> gaussian_sample(
+        int N, double mean, double sigma, std::mt19937& rng)
+    {
+        std::normal_distribution<double> normal(mean, sigma);
+
+        std::vector<double> dirs;
+        dirs.reserve(N);
+
+        for (int i = 0; i < N; ++i) {
+            double theta = normal(rng);
+            dirs.push_back(wrap_to_pi(theta));
+        }
+        return dirs;
+    }
+};
+
+// Cosine-2s Distribution
+//
+// Formula:
+//   D(θ; s) = Cₛ · cos^(2s)((θ − θ₀)/2)
+//
+// Normalization constant:
+//   Cₛ = Γ(s+1) / (2 √π · Γ(s+½))
+//
+// Larger s → narrower directional spreading.
+//
+class Cosine2sRandomizedDistribution : public DirectionalDistribution {
+public:
+    Cosine2sRandomizedDistribution(double mean_dir_rad, double s, unsigned int seed = 1234)
+        : mean_dir_rad_(mean_dir_rad), s_(s), rng_(seed) {}
+
+    double operator()(double theta, double f) const override {
+        double dtheta = theta - mean_dir_rad_;
+        return cosine2s_norm(s_) * stable_pow_cos(std::cos(0.5 * dtheta), 2.0 * s_);
+    }
+
+    std::vector<double> weights(int M, double f) const override {
+        return cosine2s_weights(M, f, s_, mean_dir_rad_);
+    }
+
+    double principal_direction_rad() const override { return mean_dir_rad_; }
+
+    // Monte Carlo rejection sampling
+    std::vector<double> sample_directions(int N_freq, double f) override {
+        double max_val = cosine2s_norm(s_); // peak at θ₀, cos(0)=1
+        return rejection_sample_generic(N_freq, f, max_val, *this, rng_);
+    }
+
+    std::vector<double> sample_directions_for_frequencies(
+        const std::vector<double>& freqs) override
+    {
+        std::vector<double> dirs;
+        dirs.reserve(freqs.size());
+
+        // peak at θ₀ is frequency-independent for cosine-2s
+        double max_val = cosine2s_norm(s_);
+        for (double f : freqs) {
+            auto one = rejection_sample_generic(1, f, max_val, *this, rng_);
+            dirs.push_back(one[0]);
+        }
+        return dirs;
+    }
+
+private:
+    double mean_dir_rad_;
+    double s_;
+    mutable std::mt19937 rng_;
+};
+
+// Mitsuyasu Distribution (1975)
+//
+// Frequency-dependent spreading exponent:
+//   s(f) = s₀ (f / f₀)ᵐ
+//
+// With typical m ≈ 5.
+//
+class MitsuyasuDistribution : public DirectionalDistribution {
+public:
+    MitsuyasuDistribution(double mean_dir_rad, double s0, double f0, double m = 5.0, unsigned int seed = 1234)
+        : mean_dir_rad_(mean_dir_rad), s0_(s0), f0_(f0), m_(m), rng_(seed) {}
+
+    double operator()(double theta, double f) const override {
+        double s_f = s0_ * std::pow(f / f0_, m_);
+        double dtheta = theta - mean_dir_rad_;
+        return cosine2s_norm(s_f) * stable_pow_cos(std::cos(0.5 * dtheta), 2.0 * s_f);
+    }
+
+    std::vector<double> weights(int M, double f) const override {
+        double s_f = s0_ * std::pow(f / f0_, m_);
+        return cosine2s_weights(M, f, s_f, mean_dir_rad_);
+    }
+
+    double principal_direction_rad() const override { return mean_dir_rad_; }
+
+    std::vector<double> sample_directions(int N_freq, double f) override {
+        double s_f = s0_ * std::pow(f / f0_, m_);
+        double max_val = cosine2s_norm(s_f); // peak at θ₀
+        return rejection_sample_generic(N_freq, f, max_val, *this, rng_);
+    }
+
+    std::vector<double> sample_directions_for_frequencies(
+        const std::vector<double>& freqs) override
+    {
+        std::vector<double> dirs;
+        dirs.reserve(freqs.size());
+
+        for (double f : freqs) {
+            double s_f = s0_ * std::pow(f / f0_, m_);
+            double max_val = cosine2s_norm(s_f);
+            auto one = rejection_sample_generic(1, f, max_val, *this, rng_);
+            dirs.push_back(one[0]);
+        }
+        return dirs;
+    }
+
+private:
+    double mean_dir_rad_;
+    double s0_, f0_, m_;
+    mutable std::mt19937 rng_;
+};
+
+// Donelan Distribution (1985)
+//
+// Frequency-dependent spreading exponent:
+//   s(f) = s₀ (f / fₚ)²   for f < fₚ
+//   s(f) = s₀ (f / fₚ)⁻²  for f ≥ fₚ
+//
+class DonelanDistribution : public DirectionalDistribution {
+public:
+    DonelanDistribution(double mean_dir_rad, double s0, double fp, unsigned int seed = 1234)
+        : mean_dir_rad_(mean_dir_rad), s0_(s0), fp_(fp), rng_(seed) {}
+
+    double operator()(double theta, double f) const override {
+        double ratio = f / fp_;
+        double s_f = (f < fp_) ? s0_ * std::pow(ratio, 2.0)
+                               : s0_ * std::pow(ratio, -2.0);
+        double dtheta = theta - mean_dir_rad_;
+        return cosine2s_norm(s_f) * stable_pow_cos(std::cos(0.5 * dtheta), 2.0 * s_f);
+    }
+
+    std::vector<double> weights(int M, double f) const override {
+        double ratio = f / fp_;
+        double s_f = (f < fp_) ? s0_ * std::pow(ratio, 2.0)
+                               : s0_ * std::pow(ratio, -2.0);
+        return cosine2s_weights(M, f, s_f, mean_dir_rad_);
+    }
+
+    double principal_direction_rad() const override { return mean_dir_rad_; }
+
+    std::vector<double> sample_directions(int N_freq, double f) override {
+        double ratio = f / fp_;
+        double s_f = (f < fp_) ? s0_ * std::pow(ratio, 2.0)
+                               : s0_ * std::pow(ratio, -2.0);
+        double max_val = cosine2s_norm(s_f); // peak at θ₀
+        return rejection_sample_generic(N_freq, f, max_val, *this, rng_);
+    }
+
+    std::vector<double> sample_directions_for_frequencies(
+        const std::vector<double>& freqs) override
+    {
+        std::vector<double> dirs;
+        dirs.reserve(freqs.size());
+
+        for (double f : freqs) {
+            double ratio = f / fp_;
+            double s_f = (f < fp_) ? s0_ * std::pow(ratio, 2.0)
+                                   : s0_ * std::pow(ratio, -2.0);
+            double max_val = cosine2s_norm(s_f);
+            auto one = rejection_sample_generic(1, f, max_val, *this, rng_);
+            dirs.push_back(one[0]);
+        }
+        return dirs;
+    }
+
+private:
+    double mean_dir_rad_;
+    double s0_, fp_;
+    mutable std::mt19937 rng_;
+};
+
+// Sech² Distribution (Longuet-Higgins type)
+//
+// Formula:
+//   D(θ) ∝ sech²(β (θ − θ₀))
+//
+class Sech2Distribution : public DirectionalDistribution {
+public:
+    Sech2Distribution(double mean_dir_rad, double beta, unsigned int seed = 1234)
+        : mean_dir_rad_(mean_dir_rad), beta_(beta), rng_(seed) {}
+
+    double operator()(double theta, double f) const override {
+        (void)f; // frequency not used, keeps interface consistent
+        double dtheta = theta - mean_dir_rad_;
+        double val = 1.0 / std::cosh(beta_ * dtheta);
+        return 0.5 * beta_ * val * val;  // normalized form
+    }
+
+    std::vector<double> weights(int M, double f) const override {
+        std::vector<double> spread(M);
+        const double dtheta = 2.0 * PI / M;
+        for (int m = 0; m < M; ++m)
+            spread[m] = operator()(-PI + m * dtheta, f);
+        return spread;
+    }
+
+    double principal_direction_rad() const override { return mean_dir_rad_; }
+
+    std::vector<double> sample_directions(int N_freq, double f) override {
+        double max_val = operator()(mean_dir_rad_, f);
+        return rejection_sample_generic(N_freq, f, max_val, *this, rng_);
+    }
+
+    std::vector<double> sample_directions_for_frequencies(
+        const std::vector<double>& freqs) override
+    {
+        std::vector<double> dirs;
+        dirs.reserve(freqs.size());
+        double max_val = operator()(mean_dir_rad_, 0.0); // peak always at θ₀
+        for (double f : freqs) {
+            auto one = rejection_sample_generic(1, f, max_val, *this, rng_);
+            dirs.push_back(one[0]);
+        }
+        return dirs;
+    }
+
+private:
+    double mean_dir_rad_;
+    double beta_;
+    mutable std::mt19937 rng_;
+};
+
+// Gaussian Distribution
+//
+// Formula:
+//   D(θ) = (1 / (σ √(2π))) · exp(−(θ − θ₀)² / (2σ²))
+//
+class GaussianDistribution : public DirectionalDistribution {
+public:
+    GaussianDistribution(double mean_dir_rad, double sigma, unsigned int seed = 1234)
+        : mean_dir_rad_(mean_dir_rad), sigma_(sigma), rng_(seed) {}
+
+    double operator()(double theta, double f) const override {
+        (void)f; // frequency not used, keeps interface consistent
+        double dtheta = theta - mean_dir_rad_;
+        double norm = 1.0 / (sigma_ * std::sqrt(2.0 * PI));
+        return norm * std::exp(-0.5 * (dtheta / sigma_)
+                                      * (dtheta / sigma_));
+    }
+
+    std::vector<double> weights(int M, double f) const override {
+        std::vector<double> spread(M);
+        const double dtheta = 2.0 * PI / M;
+        for (int m = 0; m < M; ++m)
+            spread[m] = operator()(-PI + m * dtheta, f);
+        return spread;
+    }
+
+    double principal_direction_rad() const override { return mean_dir_rad_; }
+
+    std::vector<double> sample_directions(int N_freq, double f) override {
+        return gaussian_sample(N_freq, mean_dir_rad_, sigma_, rng_);
+    }
+
+    std::vector<double> sample_directions_for_frequencies(
+        const std::vector<double>& freqs) override
+    {
+        std::vector<double> dirs;
+        dirs.reserve(freqs.size());
+        for (size_t i = 0; i < freqs.size(); ++i) {
+            auto one = gaussian_sample(1, mean_dir_rad_, sigma_, rng_);
+            dirs.push_back(one[0]);
+        }
+        return dirs;
+    }
+
+private:
+    double mean_dir_rad_;
+    double sigma_;
+    mutable std::mt19937 rng_;
+};
