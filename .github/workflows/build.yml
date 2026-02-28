@@ -69,7 +69,8 @@ jobs:
         run: mv data-sim/*.csv plots/
 
       - name: Build plot helpers
-        run: make -C plots -j 4
+        run: |
+          make -C plots -j 4 && ./fenton_plots
 
       - name: Generate plot files
         run: |
