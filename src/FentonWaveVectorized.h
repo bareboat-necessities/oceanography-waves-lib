@@ -2,7 +2,6 @@
 
 /*
    Copyright 2025, Mikhail Grushinskiy
-   AI-assisted translation of https://github.com/bareboat-necessities/bbn-wave-period-esp32/blob/main/bbn_wave_freq_m5atomS3/FentonWave.h
 */
 
 #ifdef EIGEN_NON_ARDUINO
