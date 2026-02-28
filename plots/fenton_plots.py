@@ -5,6 +5,17 @@ import numpy as np
 from pathlib import Path
 
 PLOTS_DIR = Path(__file__).resolve().parent
+REPO_ROOT = PLOTS_DIR.parent
+
+
+def _find_data_file(filename: str) -> Path:
+    """Locate generated CSV data regardless of the current working directory."""
+    for base_dir in (PLOTS_DIR, REPO_ROOT, Path.cwd()):
+        path = base_dir / filename
+        if path.exists():
+            return path
+
+    raise FileNotFoundError(f"File '{filename}' not found.")
 
 # Configure matplotlib to use LaTeX fonts and export PGF
 mpl.use("pgf")
@@ -24,7 +35,7 @@ plt.rcParams.update({
 })
 
 def plot_fenton_wave():
-    data = pd.read_csv(PLOTS_DIR / "wave_data.csv")
+    data = pd.read_csv(_find_data_file("wave_data.csv"))
 
     plt.figure(figsize=(10, 4))
     plt.plot(data['x'], data['elevation'], label=r'Surface Elevation $\eta(x)$', color='blue')
@@ -39,7 +50,7 @@ def plot_fenton_wave():
 
 def plot_wave_kinematics():
     try:
-        data = pd.read_csv(PLOTS_DIR / "wave_tracker_data.csv")
+        data = pd.read_csv(_find_data_file("wave_tracker_data.csv"))
     except FileNotFoundError:
         print("File 'wave_tracker_data.csv' not found.")
         return
@@ -77,7 +88,7 @@ def plot_wave_kinematics():
 
 def plot_wave_profile_path():
     try:
-        data = pd.read_csv(PLOTS_DIR / "wave_tracker_data.csv")
+        data = pd.read_csv(_find_data_file("wave_tracker_data.csv"))
     except FileNotFoundError:
         print("File 'wave_tracker_data.csv' not found.")
         return
