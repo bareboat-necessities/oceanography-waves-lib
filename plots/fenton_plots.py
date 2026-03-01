@@ -2,20 +2,6 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import matplotlib as mpl
 import numpy as np
-from pathlib import Path
-
-PLOTS_DIR = Path(__file__).resolve().parent
-REPO_ROOT = PLOTS_DIR.parent
-
-
-def _find_data_file(filename: str) -> Path:
-    """Locate generated CSV data regardless of the current working directory."""
-    for base_dir in (PLOTS_DIR, REPO_ROOT, Path.cwd()):
-        path = base_dir / filename
-        if path.exists():
-            return path
-
-    raise FileNotFoundError(f"File '{filename}' not found.")
 
 # Configure matplotlib to use LaTeX fonts and export PGF
 mpl.use("pgf")
@@ -35,7 +21,7 @@ plt.rcParams.update({
 })
 
 def plot_fenton_wave():
-    data = pd.read_csv(_find_data_file("wave_data.csv"))
+    data = pd.read_csv("wave_data.csv")
 
     plt.figure(figsize=(10, 4))
     plt.plot(data['x'], data['elevation'], label=r'Surface Elevation $\eta(x)$', color='blue')
@@ -45,12 +31,12 @@ def plot_fenton_wave():
     plt.grid(True)
     plt.legend()
     plt.tight_layout()
-    plt.savefig(PLOTS_DIR / "wave_profile.pgf", bbox_inches='tight')
+    plt.savefig("wave_profile.pgf", bbox_inches='tight')
     plt.close()
 
 def plot_wave_kinematics():
     try:
-        data = pd.read_csv(_find_data_file("wave_tracker_data.csv"))
+        data = pd.read_csv("wave_tracker_data.csv")
     except FileNotFoundError:
         print("File 'wave_tracker_data.csv' not found.")
         return
@@ -83,12 +69,12 @@ def plot_wave_kinematics():
              verticalalignment='top', bbox=dict(boxstyle='round', alpha=0.5))
 
     plt.tight_layout()
-    plt.savefig(PLOTS_DIR / "wave_kinematics.pgf", bbox_inches='tight')
+    plt.savefig("wave_kinematics.pgf", bbox_inches='tight')
     plt.close()
 
 def plot_wave_profile_path():
     try:
-        data = pd.read_csv(_find_data_file("wave_tracker_data.csv"))
+        data = pd.read_csv("wave_tracker_data.csv")
     except FileNotFoundError:
         print("File 'wave_tracker_data.csv' not found.")
         return
@@ -100,7 +86,7 @@ def plot_wave_profile_path():
     plt.title('Wave Profile Along Particle Path')
     plt.grid(True)
     plt.tight_layout()
-    plt.savefig(PLOTS_DIR / "wave_particle_path.pgf", bbox_inches='tight')
+    plt.savefig("wave_particle_path.pgf", bbox_inches='tight')
     plt.close()
 
 if __name__ == "__main__":
