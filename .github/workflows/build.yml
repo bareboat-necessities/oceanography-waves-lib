@@ -70,7 +70,7 @@ jobs:
 
       - name: Build plot helpers
         run: |
-          make -C plots -j 4 && ./fenton_plots
+          make -C plots -j 4 && cd plots && ./fenton_plots && cd ..
 
       - name: Generate plot files
         run: |
