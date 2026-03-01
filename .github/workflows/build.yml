@@ -38,11 +38,13 @@ jobs:
           cd data-sim
           chmod +x gen_sim_data.sh
           ./gen_sim_data.sh
+          cd ..
 
       - name: Package simulation data
         run: |
           cd data-sim
           zip sim-data-files.zip ./*.csv
+          cd ..
 
       - name: Upload simulation data to vTest release
         uses: svenstaro/upload-release-action@v2
@@ -92,6 +94,7 @@ jobs:
           cd plots
           chmod +x draw_plots.sh
           ./draw_plots.sh
+          cd ..
 
       - name: Upload plot artifacts (.pgf + png)
         uses: actions/upload-artifact@v4
