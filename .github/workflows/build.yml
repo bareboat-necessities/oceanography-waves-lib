@@ -39,6 +39,19 @@ jobs:
           chmod +x gen_sim_data.sh
           ./gen_sim_data.sh
 
+      - name: Package simulation data
+        run: |
+          cd data-sim
+          zip sim-data-files.zip ./*.csv
+
+      - name: Upload simulation data to vTest release
+        uses: svenstaro/upload-release-action@v2
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: sim-data-files.zip
+          tag: ${{ github.ref == 'refs/heads/main' && 'vTest' || github.ref }}
+          overwrite: true
+
       - name: Upload simulation data artifact
         uses: actions/upload-artifact@v4
         with:
@@ -134,3 +147,12 @@ jobs:
           name: latex-pdfs
           path: doc/**/*.pdf
           if-no-files-found: error
+
+      - name: Upload PDF
+        uses: svenstaro/upload-release-action@v2
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: "**/*.pdf"
+          tag: ${{ github.ref == 'refs/heads/main' && 'vTest' || github.ref }}
+          overwrite: true
+          file_glob: true
