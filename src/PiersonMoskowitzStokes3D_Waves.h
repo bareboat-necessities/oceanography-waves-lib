@@ -327,10 +327,11 @@ public:
         return spectrum_.frequencies();
     }
     const Eigen::Matrix<double, N_FREQ, 1>& spectrum() const {
-        return spectrum_.spectrum();
+        S_view_ = (A1_.array().square() / (2.0 * df_.array().cwiseMax(1e-12))).matrix();
+        return S_view_;
     }
     const Eigen::Matrix<double, N_FREQ, 1>& amplitudes() const {
-        return spectrum_.amplitudes();
+        return A1_;
     }
     const Eigen::Matrix<double, N_FREQ, 1>& df() const {
         return spectrum_.df();
@@ -345,7 +346,8 @@ public:
             std::vector<double> weights = normalize
                 ? directional_dist_->normalized_weights(M, f)
                 : directional_dist_->weights(M, f);
-            double S_f = spectrum_.spectrum()(i);
+            const double dfi = std::max(1e-12, df_(i));
+            double S_f = (A1_(i) * A1_(i)) / (2.0 * dfi);
             for (int m = 0; m < M; ++m) {
                 E(i, m) = S_f * weights[m];
             }
@@ -528,6 +530,7 @@ private:
     // Arrays
     Eigen::Matrix<double, N_FREQ, 1> frequencies_, omega_, k_, A1_, phi_, df_;
     Eigen::Matrix<double, N_FREQ, 1> dir_x_, dir_y_, kx_, ky_;
+    mutable Eigen::Matrix<double, N_FREQ, 1> S_view_;
 
     // Per-component deep-water Stokes drift scalar (surface): U_s0,i = ω_i k_i a_i²
     Eigen::Matrix<double, N_FREQ, 1> stokes_drift_scalar_;
