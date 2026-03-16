@@ -23,7 +23,7 @@
 #include "WaveFilesSupport.h"
 
 // Experiment Config
-static constexpr float SAMPLE_RATE_HZ  = 240.0f;
+static constexpr float SAMPLE_RATE_HZ  = 200.0f;
 static constexpr float DELTA_T         = 1.0f / SAMPLE_RATE_HZ;
 static constexpr float TEST_DURATION_S = 20 * 60.0f;    // 20 minutes
 
