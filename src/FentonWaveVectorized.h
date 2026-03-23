@@ -159,7 +159,7 @@ class EIGEN_ALIGN_MAX FentonWave {
 
     FentonWave(Real height, Real depth, Real length, Real g = Real(9.81), Real relax = Real(0.5))
       : height(height), depth(depth), length(length), g(g), relax(relax) {
-      for (int j = 1; j <= N; ++j) {
+      for (unsigned int j = 1; j <= N; ++j) {
         kj_cache(j - 1) = j * (2 * Real(M_PI) / length);
         j_cache(j - 1) = j;
       }
@@ -606,7 +606,7 @@ class EIGEN_ALIGN_MAX FentonWave {
       // Wave height constraint (row 2N+3)
       int max_idx = 0, min_idx = 0;
       Real max_val = eta(0), min_val = eta(0);
-      for (int j = 1; j <= N; ++j) {
+      for (unsigned int j = 1; j <= N; ++j) {
         if (eta(j) > max_val) {
           max_val = eta(j);
           max_idx = j;

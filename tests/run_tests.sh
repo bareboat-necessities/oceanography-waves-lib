@@ -1,4 +1,5 @@
 #!/bin/bash
+set -euo pipefail
 
-make clean; make all
-./tests
+make clean
+make check

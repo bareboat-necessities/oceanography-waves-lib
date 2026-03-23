@@ -73,6 +73,7 @@ public:
     // Realization interface
     // Default: all samples go in principal direction
     virtual std::vector<double> sample_directions(int N_freq, double f) {
+        (void)f;
         return std::vector<double>(N_freq, principal_direction_rad());
     }
 
@@ -142,6 +143,7 @@ protected:
     static std::vector<double> cosine2s_weights(
         int M, double f, double s_f, double mean_dir_rad)
     {
+        (void)f;
         std::vector<double> spread(M);
         const double dtheta = 2.0 * PI / M;
         double norm = cosine2s_norm(s_f);
@@ -209,6 +211,7 @@ public:
         : mean_dir_rad_(mean_dir_rad), s_(s), rng_(seed) {}
 
     double operator()(double theta, double f) const override {
+        (void)f;
         double dtheta = theta - mean_dir_rad_;
         return cosine2s_norm(s_) * stable_pow_cos(std::cos(0.5 * dtheta), 2.0 * s_);
     }
@@ -437,6 +440,7 @@ public:
     double principal_direction_rad() const override { return mean_dir_rad_; }
 
     std::vector<double> sample_directions(int N_freq, double f) override {
+        (void)f;
         return gaussian_sample(N_freq, mean_dir_rad_, sigma_, rng_);
     }
 
