@@ -212,13 +212,13 @@ class EIGEN_ALIGN_MAX Jonswap3dStokesWaves {
                          unsigned int seed = 42u,
                          double cutoff_tol = 1e-8)
       : spectrum_(Hs, Tp, f_min, f_max, gamma, g),
-        g_(g), cutoff_tol_(cutoff_tol),
         directional_dist_(std::move(dirDist)),
+        g_(g), cutoff_tol_(cutoff_tol),
         pairwise_size_(size_t(N_FREQ) * (N_FREQ + 1) / 2),
+        stokes_drift_mean_xy_valid_(false),
         exp_kz_cached_z_(std::numeric_limits<double>::quiet_NaN()),
         x_cached_(std::numeric_limits<double>::quiet_NaN()),
         y_cached_(std::numeric_limits<double>::quiet_NaN()),
-        stokes_drift_mean_xy_valid_(false),
         stokes_drift_surface_valid_(false)
     {
       if (!directional_dist_) {

@@ -31,11 +31,17 @@ The project includes:
 
 ```bash
 cd tests
-make
-./tests
+make check
 ```
 
-Test entry points are configured in `tests/tests.cpp` by preprocessor switches (`FENTON_TEST`, `JONSWAP_TEST`, `PM_STOKES_TEST`).
+The test binary now performs assertion-based coverage for directional spreading normalization, Fenton invariants, JONSWAP/PM spectral variance, deterministic seeded states, and invalid-parameter error handling.
+
+For a local CI-equivalent gate, you can also run:
+
+```bash
+cd tests
+./run_tests.sh
+```
 
 ### 2) Build simulation binary
 
