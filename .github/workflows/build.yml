@@ -46,6 +46,10 @@ jobs:
           ./gen_sim_data.sh
           cd ..
 
+      - name: Build fenton waves
+        run: |
+          make -C plots -j 4 && cd plots && ./fenton_plots && cd ..
+          
       - name: Package simulation data
         run: |
           cd data-sim
@@ -88,10 +92,6 @@ jobs:
 
       - name: Move data files for plotting
         run: mv data-sim/*.csv plots/
-
-      - name: Build plot helpers
-        run: |
-          make -C plots -j 4 && cd plots && ./fenton_plots && cd ..
 
       - name: Generate plot files
         run: |
