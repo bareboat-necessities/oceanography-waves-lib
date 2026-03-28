@@ -48,7 +48,7 @@ jobs:
 
       - name: Build fenton waves
         run: |
-          make -C plots -j 4 && cd plots && ./fenton_plots && cd ..
+          make -C plots -j 4 && cd plots && ./fenton_plots && mv *.csv ../data-sim/ && cd ..
           
       - name: Package simulation data
         run: |
