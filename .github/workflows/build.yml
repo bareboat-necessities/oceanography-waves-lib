@@ -96,7 +96,7 @@ jobs:
       - name: Generate plot files
         run: |
           python3 -m pip install --upgrade pip
-          pip install matplotlib numpy pandas
+          pip install matplotlib numpy pandas scipy
           cd plots
           chmod +x draw_plots.sh
           ./draw_plots.sh
