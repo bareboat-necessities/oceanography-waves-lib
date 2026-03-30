@@ -13,6 +13,14 @@ Results and generated PDF documentation from main development branch are located
 
 https://github.com/bareboat-necessities/oceanography-waves-lib/releases/tag/vTest
 
+<p align="center">
+  <img src="./img/samples/spectrum_pmstokes_medium_3d.svg?raw=true" style="max-width: 50%;">
+</p>
+
+<p align="center">
+  <img src="./img/samples/spectrum_pmstokes_medium_polar.svg?raw=true" style="max-width: 50%;">
+</p>
+
 ## Repository layout
 
 - `src/` — core wave model headers and shared utilities.
