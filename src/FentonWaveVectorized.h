@@ -101,12 +101,13 @@ class EIGEN_ALIGN_MAX FentonFFT {
 
     using Vector = Eigen::Matrix<Real, N + 1, 1>;
     using Matrix = Eigen::Matrix<Real, N + 1, N + 1>;
+    static constexpr int NumModes = static_cast<int>(N);
 
     static const Matrix& cosine_matrix() {
       static const Matrix M = []() {
         Matrix m;
-        for (int j = 0; j <= N; ++j)
-          for (int i = 0; i <= N; ++i)
+        for (int j = 0; j <= NumModes; ++j)
+          for (int i = 0; i <= NumModes; ++i)
             m(j, i) = std::cos(j * i * Real(M_PI) / N);
         return m;
       }(); return M;
@@ -133,6 +134,7 @@ template <unsigned int N = 5, typename Real = float>
 class EIGEN_ALIGN_MAX FentonWave {
   private:
     static constexpr int StateDim = 2 * (N + 1) + 2;
+    static constexpr int NumModes = static_cast<int>(N);
     using VectorF = Eigen::Matrix<Real, N + 1, 1>;
     using VectorN = Eigen::Matrix<Real, N, 1>;
     using MatrixNxP = Eigen::Matrix<Real, N, N + 1>;
@@ -503,7 +505,7 @@ class EIGEN_ALIGN_MAX FentonWave {
       Eigen::Array<Real, N, 1> j = Eigen::Array<Real, N, 1>::LinSpaced(N, 1, N);
       Eigen::Array<Real, N, 1> kj = j * k;
 
-      for (int m = 0; m <= N; ++m) {
+      for (int m = 0; m <= NumModes; ++m) {
         Real x_m = Real(M_PI) * m / N;
         Real eta_m = eta(m);
 
@@ -544,7 +546,7 @@ class EIGEN_ALIGN_MAX FentonWave {
     }
 
     Eigen::Matrix<Real, StateDim, StateDim>
-    compute_jacobian(const Eigen::Matrix<Real, StateDim, 1>& coeffs, Real H, Real k, Real D) {
+    compute_jacobian(const Eigen::Matrix<Real, StateDim, 1>& coeffs, Real /*H*/, Real k, Real D) {
       Eigen::Matrix<Real, StateDim, StateDim> J = Eigen::Matrix<Real, StateDim, StateDim>::Zero();
       auto B   = coeffs.template segment<N + 1>(0);
       auto eta = coeffs.template segment<N + 1>(N + 1);
@@ -555,13 +557,13 @@ class EIGEN_ALIGN_MAX FentonWave {
       const Eigen::Array<Real, N, 1> kj2 = kj.square();
       const Eigen::Array<Real, N, 1> Bj = B.tail(N).array();
 
-      for (int m = 0; m <= N; ++m) {
+      for (int m = 0; m <= NumModes; ++m) {
         Real eta_m = eta(m);
         Real x_m = Real(M_PI) * m / N;
         Eigen::Array<Real, N, 1> S1, C1, S2, C2;
         Eigen::Array<Real, N, 1> SC, SS, CC, CS;
 
-        for (int j = 0; j < N; ++j) {
+        for (int j = 0; j < NumModes; ++j) {
           Real kj_eta = kj(j) * eta_m;
           Real kj_D   = kj(j) * D;
           S1(j) = sinh_by_cosh(kj_eta, kj_D);
@@ -581,7 +583,7 @@ class EIGEN_ALIGN_MAX FentonWave {
 
         // First N+1 rows
         J(m, 0) = -eta_m;
-        for (int j = 0; j < N; ++j) {
+        for (int j = 0; j < NumModes; ++j) {
           J(m, j + 1) = SC(j);
         }
         J(m, N + 1 + m) = -B0 + (Bj * kj * CC).sum();
@@ -589,7 +591,7 @@ class EIGEN_ALIGN_MAX FentonWave {
 
         // Next N+1 rows
         J(N + 1 + m, 0) = -um;
-        for (int j = 0; j < N; ++j) {
+        for (int j = 0; j < NumModes; ++j) {
           J(N + 1 + m, j + 1) = k * j_arr(j) * (um * CC(j) + vm * SS(j));
         }
 
@@ -600,7 +602,7 @@ class EIGEN_ALIGN_MAX FentonWave {
       }
 
       // Mean elevation constraint (row 2N+2)
-      for (int j = 0; j <= N; ++j)
+      for (int j = 0; j <= NumModes; ++j)
         J(2 * N + 2, N + 1 + j) = (j == 0 || j == N) ? Real(0.5) / N : Real(1) / N;
 
       // Wave height constraint (row 2N+3)
