@@ -7,6 +7,12 @@ The project includes:
 - **Simulation and plotting utilities** for generating CSV outputs and figures.
 - **Test and validation executables** for model behavior and spectrum checks.
 
+## Results
+
+Results and generated PDF documentation from main development branch are located at:
+
+https://github.com/bareboat-necessities/oceanography-waves-lib/releases/tag/vTest
+
 ## Repository layout
 
 - `src/` — core wave model headers and shared utilities.
