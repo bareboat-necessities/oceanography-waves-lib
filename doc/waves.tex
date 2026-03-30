@@ -1,389 +1,818 @@
-\documentclass[11pt,letterpaper]{article}
-\usepackage{amsmath,amsfonts,amssymb,amsthm}
-\usepackage{graphicx}
+% ============================================================
+%  Ocean Wave Theories — IEEE Two-Column Journal Format
+% ============================================================
+\documentclass[journal,10pt,twocolumn]{IEEEtran}
+
+% ------------------------------------------------------------
+% Core packages
+% ------------------------------------------------------------
+\usepackage{iftex}
+\ifPDFTeX
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\fi
+
+\usepackage{amsthm}
+\usepackage{amsmath,amsfonts,amssymb,bm,mathtools}
+\usepackage{newtxtext,newtxmath} % Times-like text + math (IEEE-style)
+\usepackage{textcomp}
+
+\interdisplaylinepenalty=2500 % allow page breaks in multiline equations
+\usepackage{pgf}
+\usepackage{pgfplots}
+\usepackage{tikz}
+\pgfplotsset{compat=1.18}
+
+\usepackage{xcolor}
 \usepackage{float}
-\usepackage{booktabs}
-\usepackage{array}
-\usepackage{hyperref}
-\usepackage{geometry}
+\usepackage{graphicx}
+\usepackage{array,booktabs}
 \usepackage{caption}
 \usepackage{subcaption}
-\usepackage{lipsum} % For placeholder text, to be replaced with real content
-\usepackage{setspace}
-\usepackage{titlesec}
-\usepackage{chngcntr}
-\usepackage{tocloft}
-\usepackage{siunitx}
-\usepackage{xcolor}
 \usepackage{multirow}
+\usepackage{enumitem}
+\usepackage{siunitx}
+\usepackage[final]{microtype}
+\usepackage{etoolbox}
 
-% Page formatting
-\geometry{margin=1in}
-\setstretch{1.1}
-\titleformat{\section}{\normalfont\Large\bfseries}{\thesection}{1em}{}
-\titleformat{\subsection}{\normalfont\large\bfseries}{\thesubsection}{1em}{}
-\titleformat{\subsubsection}{\normalfont\normalsize\bfseries}{\thesubsubsection}{1em}{}
+\usepackage{cite}
+\usepackage[breaklinks=true,hidelinks]{hyperref}
+\usepackage{bookmark}
+\usepackage[nameinlink,capitalise,noabbrev]{cleveref}
 
-% Table of Contents formatting
-\renewcommand{\cftsecleader}{\cftdotfill{\cftdotsep}}
+% ------------------------------------------------------------
+% Typography / spacing
+% ------------------------------------------------------------
+\allowdisplaybreaks
+\emergencystretch=2em
 
-% For better table column types
+\AtBeginEnvironment{equation}{\small}
+\AtBeginEnvironment{align}{\small}
+
+\sisetup{
+  detect-weight = true,
+  detect-family = true,
+  per-mode = symbol,
+}
+
+% Description labels small & bold
+\setlist[description]{font=\footnotesize\bfseries, labelsep=0.6em, leftmargin=1.8em}
+
+% Matplotlib PGF backends may emit \mathdefault
+\providecommand{\mathdefault}[1]{#1}
+
+% For including PGF
+\newcommand{\IncludePGF}[2][\linewidth]{%
+  \resizebox{#1}{!}{\input{#2}}%
+}
+
+% Make common math/macros safe in PDF bookmarks
+\pdfstringdefDisableCommands{%
+  \def\SI#1#2{#1 #2}%
+  \def\bm#1{#1}%
+  \def\omega{omega}%
+  \def\tanh{tanh}%
+  \def\mathrm#1{#1}%
+  \def\text#1{#1}%
+  \def\_{}%
+  \def\cdot{}%
+  \def\;{ }%
+}
+
+% Unicode punctuation mappings (pdfLaTeX only)
+\ifPDFTeX
+\DeclareUnicodeCharacter{2013}{\textendash}        % –
+\DeclareUnicodeCharacter{2014}{\textemdash}        % —
+\DeclareUnicodeCharacter{2018}{\textquoteleft}     % ‘
+\DeclareUnicodeCharacter{2019}{\textquoteright}    % ’
+\DeclareUnicodeCharacter{201C}{\textquotedblleft}  % “
+\DeclareUnicodeCharacter{201D}{\textquotedblright} % ”
+\DeclareUnicodeCharacter{2212}{\textminus}         % −
+\fi
+
+% Float tuning
+\setcounter{topnumber}{5}
+\setcounter{dbltopnumber}{5}
+\renewcommand{\topfraction}{0.95}
+\renewcommand{\dbltopfraction}{0.95}
+\renewcommand{\textfraction}{0.05}
+\renewcommand{\floatpagefraction}{0.9}
+\renewcommand{\dblfloatpagefraction}{0.9}
+
+% Cite punctuation tightening
+\makeatletter
+\@ifpackageloaded{cite}{%
+  \renewcommand{\citepunct}{,\penalty\citepunctpenalty\,}%
+  \renewcommand{\citedash}{--}%
+}{}
+\makeatother
+
+% Column table helpers
 \newcolumntype{L}[1]{>{\raggedright\let\newline\\\arraybackslash\hspace{0pt}}m{#1}}
 \newcolumntype{C}[1]{>{\centering\let\newline\\\arraybackslash\hspace{0pt}}m{#1}}
 \newcolumntype{R}[1]{>{\raggedleft\let\newline\\\arraybackslash\hspace{0pt}}m{#1}}
 
+% ============================================================
 \title{Ocean Wave Theories: From Classical Solutions to Modern Spectral Models}
-\author{Deepseek AI with prompts by Mikhail Grushinskiy}
-\date{}
 
+\author{Various Generative AI\\Prompts by Mikhail Grushinskiy}
+
+% ============================================================
 \begin{document}
 
-    \maketitle
+\maketitle
 
-    \begin{abstract}
-        \noindent The study of ocean waves represents a cornerstone of coastal and offshore engineering, geophysics, and naval architecture, evolving over more than two centuries. This comprehensive review traces the historical development of wave theory, beginning with Gerstner's pioneering trochoidal solution and Airy's foundational linear wave theory, through to Stokes' nonlinear corrections and Fenton’s sophisticated higher-order formulations. The paper then delves into the statistical and spectral representations essential for describing the random nature of the sea, notably the Pierson–Moskowitz and JONSWAP spectra. A detailed derivation of the governing Navier-Stokes equations and their simplifications is provided. The velocity and acceleration fields for each major theory are derived and compared. The article extensively covers industrial applications, comparing shallow- and deep-water wave regimes, and provides practical tables for wave periods, lengths, and heights. Finally, it summarizes the specific models applied in contemporary offshore industries for different design scenarios, offering a practical guide for engineers and researchers.
-    \end{abstract}
+\begin{abstract}
+The study of ocean waves represents a cornerstone of coastal and offshore engineering,
+geophysics, and naval architecture, evolving over more than two centuries.
+This review traces the historical development of wave theory from Gerstner's trochoidal
+solution and Airy's foundational linear wave theory through Stokes' nonlinear corrections,
+cnoidal and solitary-wave theory for shallow water, and Fenton's higher-order formulations.
+The paper covers statistical and spectral representations essential for describing the
+random nature of the sea, notably the Pierson--Moskowitz and JONSWAP spectra.
+Governing Navier--Stokes equations and their simplifications are derived, and velocity
+and acceleration fields for each major theory are compared.
+A Le M\'ehaut\'e-style applicability diagram is included to summarize the regimes of
+validity of the principal deterministic wave theories.
+Industrial applications are discussed, including shallow- and deep-water wave regimes,
+with practical tables for wave periods, lengths, and heights.
+Finally, the specific models applied in contemporary offshore industries for different
+design scenarios are summarized, including a brief modern note on rogue-wave mechanisms
+and design relevance.
+\end{abstract}
 
-    \newpage
-    \tableofcontents
-    \newpage
+\begin{IEEEkeywords}
+Ocean waves, Airy wave theory, Stokes waves, cnoidal wave theory,
+solitary waves, JONSWAP spectrum, Pierson--Moskowitz spectrum,
+Fenton stream function, rogue waves, Benjamin--Feir instability,
+wave kinematics, offshore engineering.
+\end{IEEEkeywords}
 
-    \section{Introduction}
-    Ocean waves are a ubiquitous and powerful natural phenomenon, driven primarily by wind transferring energy to the water surface. The accurate prediction of wave kinematics (velocities, accelerations) and dynamics (forces, energy) is critical for the design and operation of offshore structures (platforms, wind turbines), ships, and coastal defenses. The mathematical challenge of describing water waves is profound, involving nonlinear boundary conditions at the free surface, making it one of the classic problems of fluid dynamics.
+% ============================================================
+\section{Introduction}
+\label{sec:intro}
 
-    The evolution of ocean wave theory is a journey from exact but restrictive solutions to linearized approximations, then back to increasingly accurate nonlinear and statistical descriptions. This paper aims to provide a thorough exposition of this journey. Section 2 details the historical context. Section 3 establishes the fundamental governing equations. Sections 4 through 7 dissect the key deterministic wave theories: Gerstner, Airy, Stokes, and Fenton. Section 8 transitions to the spectral models necessary for describing real, irregular seas. Section 9 provides practical data and discusses depth effects. Finally, Section 10 summarizes industrial applications, and Section 11 concludes.
+Ocean waves are a ubiquitous and powerful natural phenomenon, driven primarily by wind
+transferring energy to the water surface.
+Accurate prediction of wave kinematics (velocities, accelerations) and dynamics (forces,
+energy) is critical for the design and operation of offshore structures (platforms, wind
+turbines), ships, and coastal defenses.
+The mathematical challenge of describing water waves is profound, involving nonlinear
+boundary conditions at the free surface, making it one of the classic problems of fluid
+dynamics.
 
-    \section{Historical Development of Wave Theory}
-    \subsection{Early Exact Solutions: The Gerstner Wave (1802)}
-    The quest for a mathematical description of water waves began in earnest in the 19th century. In 1802, Franz Joseph von Gerstner (also known as František Josef Gerstner) presented the first-ever exact solution to the governing equations for a wave propagating on the surface of an ideal fluid. His solution, now known as the \emph{trochoidal} or \emph{Gerstner wave}, was groundbreaking. It described a wave form that is a trochoid (the curve traced by a point on a rolling wheel) and, crucially, it described the motion of individual water particles as closed circular orbits, larger at the surface and decaying with depth. This matched observations of floating objects bobbing up and down and moving in small circles. However, this elegance came with a significant limitation: the flow field described by Gerstner's solution is rotational ($\nabla \times \mathbf{u} \neq 0$), whereas the flow generated by wind waves over a flat bottom is typically considered irrotational. This theoretical discrepancy limited its use in fundamental fluid dynamics but secured its place in history.
+The evolution of ocean wave theory is a journey from exact but restrictive solutions to
+linearized approximations, then back to increasingly accurate nonlinear and statistical
+descriptions.
+Section~\ref{sec:history} details the historical context.
+Section~\ref{sec:ns} establishes the governing equations.
+Sections~\ref{sec:gerstner}--\ref{sec:fenton} dissect the key deterministic wave
+theories, including their ranges of applicability.
+Section~\ref{sec:spectral} introduces spectral models for irregular seas.
+Section~\ref{sec:realwaves} discusses depth effects and practical parameter ranges.
+Section~\ref{sec:industrial} summarizes industrial applications, and
+Section~\ref{sec:conclusion} concludes.
 
-    \subsection{Linearization and the Foundation: Airy Theory (1841)}
-    The next major leap came from Sir George Biddell Airy, the Astronomer Royal. In 1841, Airy introduced a radical simplification: the assumption of small wave amplitude relative to wavelength ($ak \ll 1$, where $a$ is amplitude and $k$ is wavenumber). This \emph{small-amplitude} or \emph{linear} assumption allowed him to linearize the formidable free-surface boundary conditions. The result was \emph{Airy wave theory} (often called linear wave theory, LWT). While an approximation, LWT provided immense practical value. It established the vital \emph{dispersion relation} $\omega^2 = gk \tanh(kh)$ linking wave frequency ($\omega$) to wavenumber ($k$) and water depth ($h$), meaning waves of different lengths travel at different speeds. It also provided simple, analytical expressions for particle kinematics and pressure. Airy theory became, and remains, the fundamental building block for most engineering calculations and more complex models.
+% ============================================================
+\section{Historical Development of Wave Theory}
+\label{sec:history}
 
-    \subsection{Nonlinear Developments: Stokes Theory (1847)}
-    The obvious limitation of Airy theory is its failure to capture the characteristics of larger, steeper waves, which exhibit crest-trough asymmetry (sharp crests and flat troughs). Sir George Gabriel Stokes addressed this in 1847 by seeking a solution as a perturbation series in terms of wave steepness $\epsilon = ak$. His method, now called \emph{Stokes wave theory}, added higher-order correction terms to the linear solution. The second-order Stokes theory provided a correction to the profile, making it asymmetric, and to the particle paths, which became open rather than closed. Stokes' work was seminal in demonstrating that nonlinear, periodic wave solutions with irrotational flow were possible. His perturbation approach paved the way for all subsequent high-order theories.
+\subsection{Early Exact Solutions: The Gerstner Wave (1802)}
+In 1802, Franz Joseph von Gerstner presented the first exact solution to the governing
+equations for a wave propagating on the surface of an ideal fluid.
+His \emph{trochoidal wave} described water particle motion as closed circular orbits,
+larger at the surface and decaying with depth.
+However, the flow field is rotational ($\nabla \times \mathbf{u} \neq 0$), whereas wind
+waves are typically considered irrotational, limiting its use in fundamental fluid
+dynamics.
 
-    \subsection{Modern Higher-Order Expansions: Fenton's Theory (1980s)}
-    While Stokes' method was conceptually powerful, carrying out the algebra to high orders was prohibitively complex before the computer age. In the 1980s, J. D. Fenton revolutionized nonlinear wave theory by using computer algebra systems to derive very high-order Stokes-type solutions (e.g., 5th, 10th, even 100th order). He often used a Fourier series representation for the surface elevation, with coefficients determined numerically to satisfy the governing equations precisely. \emph{Fenton's theory} provides highly accurate solutions for waves very close to the theoretical breaking limit (Steepness $ak \approx 0.44$ in deep water) and is the basis for many modern computational tools used in offshore engineering.
+\subsection{Linearization and the Foundation: Airy Theory (1841)}
+Sir George Biddell Airy introduced a radical simplification in 1841: the small-amplitude
+assumption $ak \ll 1$ (where $a$ is amplitude and $k$ is wavenumber).
+This linearized the free-surface boundary conditions, yielding \emph{Airy wave theory}
+(linear wave theory, LWT) and the vital dispersion relation
+$\omega^2 = gk \tanh(kh)$.
+Airy theory remains the fundamental building block for most engineering calculations.
 
-    \subsection{Spectral Approaches: Embracing Randomness (Mid-20th Century)}
-    All previous theories described regular, monochromatic (single-frequency) waves. Real ocean waves are irregular, random, and multi-directional. A new framework was needed. The concept of representing the sea surface as a superposition of infinite linear (Airy) components, each with a random phase, was developed. The statistical properties of the sea state are then described by its \emph{variance spectrum} $S(\omega)$, which details how wave energy is distributed across different frequencies.
-    \begin{itemize}
-        \item \textbf{Pierson and Moskowitz (1964)} analyzed data from the North Atlantic and proposed an empirical spectrum for a \emph{fully developed sea}, where energy input from the wind is balanced by dissipation.
-        \item The \textbf{JONSWAP} (Joint North Sea Wave Project) campaign (1973) measured waves in the North Sea and found that developing seas under fetch-limited conditions have a much sharper spectral peak. The JONSWAP spectrum is a modification of the Pierson-Moskowitz form and has become the standard for much of offshore design.
-    \end{itemize}
-    These spectral models allow engineers to statistically describe extreme waves, predict loads, and simulate realistic sea states for design and analysis.
+\subsection{Nonlinear Developments: Stokes Theory (1847)}
+Sir George Gabriel Stokes addressed steep-wave inaccuracies in 1847 by seeking a
+solution as a perturbation series in wave steepness $\epsilon = ak$.
+\emph{Stokes wave theory} added higher-order correction terms that produce crest--trough
+asymmetry (sharp crests, flat troughs) and open particle orbits, enabling net mass
+transport (\emph{Stokes drift}).
 
-    \section{Navier–Stokes Equations as Governing Framework}
-    All classical wave theories are derived from the fundamental laws of fluid motion, embodied in the Navier-Stokes equations. For an incompressible fluid (a valid assumption for water), these are:
-    \begin{enumerate}
-        \item \textbf{Conservation of Mass (Continuity Equation):}
-        \begin{equation}
-            \nabla \cdot \mathbf{u} = 0
-            \label{eq:continuity}
-        \end{equation}
-        \item \textbf{Conservation of Momentum:}
-        \begin{equation}
-            \rho \left[ \frac{\partial \mathbf{u}}{\partial t} + (\mathbf{u} \cdot \nabla) \mathbf{u} \right] = -\nabla p + \mu \nabla^2 \mathbf{u} + \rho \mathbf{g}
-            \label{eq:navierstokes}
-        \end{equation}
-    \end{enumerate}
-    Here, $\mathbf{u} = (u, v, w)$ is the fluid velocity vector, $p$ is pressure, $\rho$ is density, $\mu$ is dynamic viscosity, and $\mathbf{g} = (0, 0, -g)$ is the gravitational acceleration vector.
+\subsection{Shallow-Water Nonlinear Theory: Cnoidal and Solitary Waves}
+As the focus of engineering extended from deep-water swell to coastal and harbour
+environments, it became clear that steepness alone is not the best measure of
+nonlinearity in shallow water.
+Long waves in finite depth are better described by cnoidal-wave solutions associated
+with the Korteweg--de Vries framework, and by their solitary-wave limit for extreme
+long-wave cases \cite{LeMehaute1976,Fenton1990,DNVC205}.
 
-    \subsection{Simplifications for Ideal Flow}
-    For waves away from boundaries and the breaking zone, viscous effects are often negligible. Furthermore, the flow can often be considered irrotational ($\nabla \times \mathbf{u} = 0$) from the start. These assumptions allow for significant simplification:
-    \begin{itemize}
-        \item \textbf{Inviscid:} $\mu = 0$, so the $\mu \nabla^2 \mathbf{u}$ term vanishes.
-        \item \textbf{Irrotational:} This implies the velocity can be written as the gradient of a scalar \emph{velocity potential} $\phi$, so $\mathbf{u} = \nabla \phi$.
-        \item Substituting $\mathbf{u} = \nabla \phi$ into Eq. \ref{eq:continuity} yields \textbf{Laplace's Equation:}
-        \begin{equation}
-            \nabla^2 \phi = 0
-            \label{eq:laplace}
-        \end{equation}
-    \end{itemize}
-    The problem then reduces to solving Laplace's equation within the fluid domain, subject to boundary conditions:
-    \begin{enumerate}
-        \item \textbf{Kinematic Bottom Boundary Condition (BBC):} No flow through the seabed at $z = -h$.
-        \begin{equation}
-            \frac{\partial \phi}{\partial z} = 0 \quad \text{at} \quad z = -h
-        \end{equation}
-        \item \textbf{Kinematic Free Surface Boundary Condition (FSBC):} A particle on the free surface remains on the free surface ($z = \eta$).
-        \begin{equation}
-            \frac{\partial \eta}{\partial t} + \frac{\partial \phi}{\partial x}\frac{\partial \eta}{\partial x} + \frac{\partial \phi}{\partial y}\frac{\partial \eta}{\partial y} = \frac{\partial \phi}{\partial z} \quad \text{at} \quad z = \eta
-        \end{equation}
-        \item \textbf{Dynamic Free Surface Boundary Condition:} The pressure at the free surface is constant (atmospheric pressure). Using Bernoulli's theorem for unsteady irrotational flow leads to:
-        \begin{equation}
-            \frac{\partial \phi}{\partial t} + \frac{1}{2}|\nabla \phi|^2 + g\eta = 0 \quad \text{at} \quad z = \eta
-        \end{equation}
-    \end{enumerate}
-    The complexity of water wave theory arises from the FSBCs, which must be applied at the unknown free surface $z=\eta(x,y,t)$ and are nonlinear. Different wave theories emerge from how these equations are simplified and solved.
+\subsection{Modern Higher-Order Expansions: Fenton's Theory (1980s)}
+J.~D.~Fenton used computer algebra and Fourier-based formulations to derive highly
+accurate nonlinear wave solutions, including stream-function approaches suitable for
+steep waves and shallow-water transition regimes \cite{Fenton1990}.
+These formulations underpin many modern offshore engineering tools.
 
-    \section{Trochoidal (Gerstner) Waves}
-    \subsection{Formulation and Solution}
-    Gerstner's approach was distinct. He did not start from a potential but instead defined the Lagrangian motion of each water particle. For a wave propagating in the $x$-direction, the coordinates $(x, z)$ of a particle whose mean position is $(X, Z)$ are given by:
-    \begin{align}
-        x &= X - \frac{a}{k} e^{kZ} \sin(kX - \omega t), \\
-        z &= Z + \frac{a}{k} e^{kZ} \cos(kX - \omega t),
-    \end{align}
-    where $a$ is a parameter related to amplitude, $k=2\pi/\lambda$ is the wavenumber, and $\omega=2\pi/T$ is the wave angular frequency. The dispersion relation for Gerstner waves is $\omega^2 = gk$, identical to deep-water linear waves.
+\subsection{Spectral Approaches: Embracing Randomness (Mid-20th Century)}
+Real ocean waves are irregular and random.
+The sea surface is modeled as a superposition of infinite linear (Airy) components with
+random phases; its statistics are described by the \emph{variance spectrum} $S(\omega)$.
+\begin{itemize}
+  \item \textbf{Pierson and Moskowitz (1964)} proposed an empirical spectrum for a
+    \emph{fully developed sea} where energy input from wind balances dissipation.
+  \item The \textbf{JONSWAP} project (1973) found that fetch-limited North Sea waves
+    have a sharper spectral peak, leading to the JONSWAP spectrum now standard for
+    offshore design.
+\end{itemize}
 
-    The resulting free surface profile (found by setting the mean depth $Z=0$) is a trochoid:
-    \begin{align}
-        x_s &= X - \frac{a}{k} \sin(kX - \omega t), \\
-        \eta = z_s &= \frac{a}{k} \cos(kX - \omega t).
-    \end{align}
-    This profile is sharper at the crest and flatter at the trough than a sinusoid, matching observations better than the linear profile.
+% ============================================================
+\section{Navier--Stokes Equations as Governing Framework}
+\label{sec:ns}
 
-    \subsection{Velocity and Acceleration Fields}
-    The velocity components are found by differentiating the particle positions with respect to time:
-    \begin{align}
-        u &= \frac{\partial x}{\partial t} = a \omega e^{kZ} \cos(kX - \omega t), \\
-        w &= \frac{\partial z}{\partial t} = a \omega e^{kZ} \sin(kX - \omega t).
-    \end{align}
-    The accelerations are found by differentiating again:
-    \begin{align}
-        a_x &= \frac{\partial u}{\partial t} = a \omega^2 e^{kZ} \sin(kX - \omega t), \\
-        a_z &= \frac{\partial w}{\partial t} = -a \omega^2 e^{kZ} \cos(kX - \omega t).
-    \end{align}
-    A key result is that the vorticity $\zeta = \frac{\partial u}{\partial z} - \frac{\partial w}{\partial x}$ is non-zero, confirming the flow is rotational.
-
-    \subsection{Limitations and Applications}
-    The rotational nature of the flow is its main limitation, as it violates the common assumption of irrotationality for wave generation by wind. It also cannot satisfy the zero-pressure condition at the surface for a stratified fluid. Consequently, Gerstner's theory is rarely used for direct engineering calculation of loads. However, it remains historically important and is sometimes used in computer graphics for generating realistic-looking ocean surfaces due to the simplicity of its parametric equations.
-
-    \section{Airy (Linear) Wave Theory}
-    \subsection{Assumptions and Linearization}
-    Airy theory assumes:
-    \begin{enumerate}
-        \item Inviscid, incompressible, irrotational flow.
-        \item Small wave steepness: $\epsilon = ak \ll 1$.
-        \item Uniform water depth $h$.
-        \item The wave is a plane wave (2D).
-    \end{enumerate}
-    The small steepness assumption is crucial. It allows the FSBCs to be linearized by applying them at the \emph{mean} water level ($z=0$) instead of the actual surface ($z=\eta$). This transforms the nonlinear problem into a linear one.
-
-    \subsection{Solution: Velocity Potential and Surface Profile}
-    The solution to Laplace's equation (Eq. \ref{eq:laplace}) with the linearized boundary conditions is the velocity potential:
+All classical wave theories derive from the fundamental laws of fluid motion.
+For an incompressible fluid the governing equations are:
+\begin{enumerate}
+  \item \textbf{Continuity:}
     \begin{equation}
-        \phi(x,z,t) = \frac{a g}{\omega} \frac{\cosh[k(z+h)]}{\cosh(kh)} \sin(kx - \omega t).
-        \label{eq:airypotential}
+      \nabla \cdot \mathbf{u} = 0
+      \label{eq:continuity}
     \end{equation}
-    The corresponding surface elevation is a simple harmonic function:
+  \item \textbf{Momentum:}
     \begin{equation}
-        \eta(x,t) = a \cos(kx - \omega t) = \frac{H}{2} \cos(kx - \omega t).
-        \label{eq:airyeta}
+      \rho \!\left[\frac{\partial \mathbf{u}}{\partial t}
+        + (\mathbf{u} \cdot \nabla)\mathbf{u}\right]
+        = -\nabla p + \mu\nabla^2\mathbf{u} + \rho\mathbf{g}
+      \label{eq:navierstokes}
     \end{equation}
+\end{enumerate}
+where $\mathbf{u}=(u,v,w)$ is velocity, $p$ pressure, $\rho$ density, $\mu$ dynamic
+viscosity, and $\mathbf{g}=(0,0,-g)$.
 
-    \subsection{Velocity and Acceleration Fields}
-    The horizontal and vertical velocity components are derived from $\mathbf{u} = \nabla \phi$:
-    \begin{align}
-        u &= \frac{\partial \phi}{\partial x} = a\omega \frac{\cosh[k(z+h)]}{\sinh(kh)} \cos(kx - \omega t) = \frac{H}{2}\omega \frac{\cosh[k(z+h)]}{\sinh(kh)} \cos(kx - \omega t), \\
-        w &= \frac{\partial \phi}{\partial z} = a\omega \frac{\sinh[k(z+h)]}{\sinh(kh)} \sin(kx - \omega t) = \frac{H}{2}\omega \frac{\sinh[k(z+h)]}{\sinh(kh)} \sin(kx - \omega t).
-    \end{align}
-    The local fluid accelerations are the Eulerian time derivatives of velocity:
-    \begin{align}
-        a_x &= \frac{\partial u}{\partial t} = -a\omega^2 \frac{\cosh[k(z+h)]}{\sinh(kh)} \sin(kx - \omega t) = -\frac{H}{2}\omega^2 \frac{\cosh[k(z+h)]}{\sinh(kh)} \sin(kx - \omega t), \\
-        a_z &= \frac{\partial w}{\partial t} = -a\omega^2 \frac{\sinh[k(z+h)]}{\sinh(kh)} \cos(kx - \omega t) = -\frac{H}{2}\omega^2 \frac{\sinh[k(z+h)]}{\sinh(kh)} \cos(kx - \omega t).
-    \end{align}
-
-
-    \subsection{Dispersion Relation}
-    A key result from applying the boundary conditions is the \emph{dispersion relation}:
+\subsection{Simplifications for Ideal Flow}
+Neglecting viscosity ($\mu=0$) and assuming irrotational flow
+($\nabla\times\mathbf{u}=0$) allows the velocity to be written as
+$\mathbf{u}=\nabla\phi$.
+Substituting into~\eqref{eq:continuity} yields \textbf{Laplace's equation}:
+\begin{equation}
+  \nabla^2\phi = 0.
+  \label{eq:laplace}
+\end{equation}
+The problem reduces to solving~\eqref{eq:laplace} subject to:
+\begin{enumerate}
+  \item \textbf{Kinematic bottom boundary condition (BBC)} at $z=-h$:
     \begin{equation}
-        \omega^2 = gk \tanh(kh)
-        \label{eq:dispersion}
+      \frac{\partial\phi}{\partial z} = 0.
     \end{equation}
-    This equation links wave period $T = 2\pi/\omega$, wavelength $\lambda = 2\pi/k$, and depth $h$. It can be rewritten in terms of wave celerity $c = \lambda/T = \omega/k$:
+  \item \textbf{Kinematic free-surface boundary condition (FSBC)} at $z=\eta$:
     \begin{equation}
-        c = \frac{gT}{2\pi} \tanh(kh) = \sqrt{\frac{g\lambda}{2\pi} \tanh\left(\frac{2\pi h}{\lambda}\right)}.
+      \frac{\partial\eta}{\partial t}
+        + \frac{\partial\phi}{\partial x}\frac{\partial\eta}{\partial x}
+        + \frac{\partial\phi}{\partial y}\frac{\partial\eta}{\partial y}
+        = \frac{\partial\phi}{\partial z}.
     \end{equation}
-    This shows that longer waves travel faster than shorter waves (\emph{dispersion}) and that all waves slow down in shallow water (\emph{shoaling}).
-
-    \subsection{Pressure Field}
-    The pressure within the fluid is given by the linearized Bernoulli equation:
+  \item \textbf{Dynamic FSBC} (constant pressure at the surface) via Bernoulli:
     \begin{equation}
-        p = -\rho g z + \rho g a \frac{\cosh[k(z+h)]}{\cosh(kh)} \cos(kx - \omega t) = -\rho g z + \rho g \eta K_p(z),
-        \label{eq:airypressure}
+      \frac{\partial\phi}{\partial t}
+        + \frac{1}{2}|\nabla\phi|^2 + g\eta = 0
+        \quad\text{at } z=\eta.
     \end{equation}
-    where $K_p(z) = \cosh[k(z+h)] / \cosh(kh)$ is the \emph{pressure response factor}. The first term is the hydrostatic pressure, and the second is the dynamic (wave-induced) pressure, which decays with depth.
+\end{enumerate}
+The nonlinearity of these conditions, which must be applied at the unknown surface
+$z=\eta(x,y,t)$, gives rise to the different wave theories.
 
-    \subsection{Industrial Use and Limitations}
-    Airy theory is the workhorse of ocean engineering. Its simplicity and linearity are its greatest strengths:
-    \begin{itemize}
-        \item It forms the basis of \textbf{spectral analysis} (Section 8), where complex sea states are modeled as a sum of linear components.
-        \item It is used in the \textbf{Morison equation} for calculating wave loads on slender members.
-        \item It is integral to wave forecasting models (e.g., WAM, WAVEWATCH III).
-    \end{itemize}
-    Its primary limitation is its inaccuracy for steep waves, where it fails to predict asymmetry, higher harmonics, and mass transport.
+% ============================================================
+\section{Trochoidal (Gerstner) Waves}
+\label{sec:gerstner}
 
-    \section{Stokes Wave Theory}
-    \subsection{Perturbation Approach}
-    Stokes addressed the limitations of linear theory by seeking a solution as a power series in the wave steepness $\epsilon = ak$:
-    \begin{align}
-        \phi &= \epsilon \phi_1 + \epsilon^2 \phi_2 + \epsilon^3 \phi_3 + \dots, \\
-        \eta &= \epsilon \eta_1 + \epsilon^2 \eta_2 + \epsilon^3 \eta_3 + \dots.
-    \end{align}
-    The solution process involves substituting these series into the full nonlinear boundary conditions and solving order-by-order. $\phi_1$ and $\eta_1$ are the linear (Airy) solutions.
+\subsection{Formulation and Solution}
+Gerstner defined the Lagrangian motion of each water particle.
+For a wave propagating in the $x$-direction, the position of a particle with mean
+position $(X,Z)$ is:
+\begin{align}
+  x &= X - \frac{a}{k}e^{kZ}\sin(kX-\omega t), \\
+  z &= Z + \frac{a}{k}e^{kZ}\cos(kX-\omega t),
+\end{align}
+with dispersion relation $\omega^2 = gk$ (identical to deep-water linear waves).
+Setting $Z=0$ gives the trochoidal free surface:
+\begin{align}
+  x_s &= X - \frac{a}{k}\sin(kX-\omega t), \\
+  \eta &= \frac{a}{k}\cos(kX-\omega t),
+\end{align}
+which is sharper at the crest and flatter at the trough than a sinusoid.
 
-    \subsection{Second-Order Theory}
-    The second-order solutions for surface elevation and potential are:
-    \begin{align}
-        \eta(x,t) &= a \cos\theta + \frac{a^2 k}{4} \frac{\cosh(kh)(2 + \cosh(2kh))}{\sinh^3(kh)} \cos 2\theta, \\
-        \phi(x,z,t) &= \phi_1 + \frac{3}{8} a^2 \omega \frac{\cosh[2k(z+h)]}{\sinh^4(kh)} \sin 2\theta,
-    \end{align}
-    where $\theta = kx - \omega t$. In \textbf{deep water} ($h \to \infty$), these simplify significantly:
-    \begin{align}
-        \eta(x,t) &= a \cos\theta + \frac{1}{2} a^2 k \cos 2\theta, \\
-        \phi(x,z,t) &= \frac{a g}{\omega} e^{kz} \sin\theta + \frac{3}{8} a^2 \omega e^{2kz} \sin 2\theta.
-    \end{align}
-    The second-order correction $\frac{1}{2} a^2 k \cos 2\theta$ is always positive at the crest ($\theta=0, 2\pi, \dots$) and negative at the trough ($\theta=\pi, 3\pi, \dots$), making the wave sharper and higher at the crest and flatter and shallower at the trough. This is the characteristic \emph{crest-trough asymmetry}.
+\subsection{Velocity and Acceleration Fields}
+\begin{align}
+  u   &= a\omega e^{kZ}\cos(kX-\omega t), \\
+  w   &= a\omega e^{kZ}\sin(kX-\omega t), \\
+  a_x &= a\omega^2 e^{kZ}\sin(kX-\omega t), \\
+  a_z &= -a\omega^2 e^{kZ}\cos(kX-\omega t).
+\end{align}
+Non-zero vorticity $\zeta = \partial u/\partial z - \partial w/\partial x$ confirms the
+flow is rotational.
 
-    \subsection{Higher-Order Theories and Properties}
-    Stokes' method can be extended to higher orders (3rd, 4th, 5th). Each higher order adds a new harmonic (e.g., $\cos 3\theta$, $\cos 4\theta$) and further refines the profile, kinematics, and dynamics. Key nonlinear features include:
-    \begin{itemize}
-        \item \textbf{Phase Speed Increase:} The wave phase speed becomes dependent on wave height.
-        \item \textbf{Non-Closed Orbits:} Particle paths are not closed, leading to a small net mass transport in the direction of wave propagation (\emph{Stokes drift}).
-        \item \textbf{Asymmetric Kinematics:} Horizontal velocity under the crest is larger and lasts for a shorter time than the slower velocity under the trough.
-    \end{itemize}
+\subsection{Limitations and Applications}
+The rotational nature violates the irrotationality assumption standard in wind-generated
+wave analysis, and Gerstner waves cannot satisfy the zero-pressure condition for a
+stratified fluid.
+Although rarely used for engineering load calculations, the parametric simplicity of
+the formulation has found application in computer graphics for generating realistic ocean
+surfaces.
 
-    \subsection{Use in Practice}
-    Stokes 2nd and 3rd order theories are widely used in design codes (e.g., API, DNVGL standards) for calculating wave loads on offshore structures in intermediate to deep water when waves are steep. They provide a much better estimate of the maximum kinematics under the wave crest, which often governs the design load.
+% ============================================================
+\section{Airy (Linear) Wave Theory}
+\label{sec:airy}
 
-    \section{Fenton’s Higher-Order Theory}
-    \subsection{Stream Function Method}
-    Fenton's approach often uses the \emph{stream function} formulation. For steady flow in a reference frame moving with the wave celerity $c$, the flow becomes steady. The stream function $\psi$ is defined such that:
-    \begin{align}
-        u - c = -\frac{\partial \psi}{\partial z}, \quad w = \frac{\partial \psi}{\partial x}.
-    \end{align}
-    The surface profile $\eta$ is a streamline ($\psi = 0$). The solution is expressed as a Fourier series:
-    \begin{equation}
-        \psi(x,z) = -c z + \sum_{n=1}^{N} B_n \sin[nk(x - c t)] \frac{\cosh[nk(z+h)]}{\cosh(nkh)},
-    \end{equation}
-    where $B_n$ are the unknown coefficients. The number of terms $N$ defines the order of the theory. The coefficients $B_n$ and celerity $c$ are found numerically by minimizing the error in satisfying the dynamic free surface boundary condition (constant pressure) at a large number of points on the free surface.
+\subsection{Assumptions and Linearization}
+Airy theory assumes inviscid, incompressible, irrotational flow; small wave steepness
+$\epsilon=ak\ll1$; uniform depth $h$; and a plane wave (2D).
+The small-steepness assumption linearizes the FSBCs by applying them at the mean water
+level $z=0$ rather than at $z=\eta$.
 
-    \subsection{Advantages and Application}
-    This method offers superior convergence properties compared to the Stokes perturbation approach, especially for very steep waves. Fenton's 5th or 10th order stream function theory is considered highly accurate for most engineering purposes, even for waves near the breaking limit. It is implemented in industry-standard software packages (e.g., OrcaFlex, HydroD) for calculating detailed wave kinematics for input into structural analysis and fatigue calculations.
+\subsection{Velocity Potential and Surface Profile}
+The solution to~\eqref{eq:laplace} with linearized boundary conditions is:
+\begin{equation}
+  \phi(x,z,t) = \frac{ag}{\omega}
+    \frac{\cosh[k(z+h)]}{\cosh(kh)}\sin(kx-\omega t),
+  \label{eq:airypotential}
+\end{equation}
+with surface elevation:
+\begin{equation}
+  \eta(x,t) = a\cos(kx-\omega t) = \frac{H}{2}\cos(kx-\omega t).
+  \label{eq:airyeta}
+\end{equation}
 
-    \section{Spectral Representations of Irregular Waves}
-    \subsection{The Random Sea Concept}
-    A real sea state is irregular, consisting of countless wave components of different heights, periods, and directions. The surface elevation $\eta(t)$ at a point is a stationary Gaussian random process. It can be represented as a sum of linear (Airy) components:
-    \begin{equation}
-        \eta(t) = \sum_{i=1}^{N} a_i \cos(\omega_i t + \epsilon_i),
-    \end{equation}
-    where $a_i$ is the amplitude, $\omega_i$ the frequency, and $\epsilon_i$ a random phase angle uniformly distributed between $0$ and $2\pi$.
+\subsection{Velocity and Acceleration Fields}
+From $\mathbf{u}=\nabla\phi$:
+\begin{align}
+  u &= a\omega\frac{\cosh[k(z+h)]}{\sinh(kh)}\cos(kx-\omega t), \\
+  w &= a\omega\frac{\sinh[k(z+h)]}{\sinh(kh)}\sin(kx-\omega t).
+\end{align}
+Eulerian accelerations:
+\begin{align}
+  a_x &= -a\omega^2\frac{\cosh[k(z+h)]}{\sinh(kh)}\sin(kx-\omega t), \\
+  a_z &= -a\omega^2\frac{\sinh[k(z+h)]}{\sinh(kh)}\cos(kx-\omega t).
+\end{align}
 
-    \subsection{The Variance Spectrum}
-    The distribution of wave energy is described by the \emph{wave variance spectrum} $S_\eta(\omega)$. The area under the spectrum between two frequencies equals the variance ($\overline{\eta^2}$) contributed by those components. Since variance is related to wave height by $\overline{\eta^2} = H_{rms}^2/8$, the spectrum defines the sea state. Significant wave height $H_s$ (average of the highest 1/3 waves) is related to the spectrum by:
-    \begin{equation}
-        H_s \approx H_{m0} = 4\sqrt{m_0}, \quad \text{where} \quad m_0 = \int_0^\infty S_\eta(\omega)  d\omega.
-    \end{equation}
+\subsection{Dispersion Relation}
+\begin{equation}
+  \omega^2 = gk\tanh(kh),
+  \label{eq:dispersion}
+\end{equation}
+linking wave period $T=2\pi/\omega$, wavelength $\lambda=2\pi/k$, and depth $h$.
+Wave celerity $c=\omega/k$ becomes:
+\begin{equation}
+  c = \sqrt{\frac{g\lambda}{2\pi}\tanh\!\left(\frac{2\pi h}{\lambda}\right)},
+\end{equation}
+showing that longer waves travel faster (\emph{dispersion}) and that waves slow in
+shallow water (\emph{shoaling}).
 
-    \subsection{Pierson–Moskowitz (PM) Spectrum (1964)}
-    This spectrum models a \textbf{fully developed sea} in deep water, where the wind has blown long enough over a large enough area for the waves to come into equilibrium with the wind. It is a function of wind speed $U$ alone.
-    \begin{equation}
-        S_\eta(\omega) = \alpha g^2 \omega^{-5} \exp\left[-\beta \left(\frac{\omega_p}{\omega}\right)^4\right],
-    \end{equation}
-    where $\alpha = 8.1\times10^{-3}$, $\beta=0.74$, and $\omega_p$ is the peak (modal) frequency, related to wind speed by $\omega_p = 0.855 g / U_{19.5}$ ($U_{19.5}$ is wind speed at 19.5m above sea level). In terms of $H_s$:
-    \begin{equation}
-        S_\eta(\omega) = \frac{5}{16} H_s^2 \omega_p^4 \omega^{-5} \exp\left[-\frac{5}{4}\left(\frac{\omega_p}{\omega}\right)^4\right].
-    \end{equation}
+\subsection{Pressure Field}
+The linearized Bernoulli equation gives:
+\begin{equation}
+  p = -\rho gz + \rho g\eta\,K_p(z),
+  \label{eq:airypressure}
+\end{equation}
+where $K_p(z)=\cosh[k(z+h)]/\cosh(kh)$ is the pressure response factor.
+The first term is hydrostatic; the second is the dynamic wave-induced pressure,
+decaying with depth.
 
-    \subsection{JONSWAP Spectrum (1973)}
-    The JONSWAP project found that North Sea waves are rarely fully developed. They are \textbf{fetch-limited} (the wind has not blown long enough over the fetch distance for full development). The spectrum has a sharper peak and more energy near the peak frequency.
-    \begin{equation}
-        S_{\text{JONSWAP}}(\omega) = S_{\text{PM}}(\omega) \cdot \gamma^{\exp\left[-\frac{(\omega - \omega_p)^2}{2\sigma^2\omega_p^2}\right]},
-    \end{equation}
-    where:
-    \begin{itemize}
-        \item $S_{\text{PM}}(\omega)$ is the Pierson-Moskowitz spectrum.
-        \item $\gamma$ is the \textbf{peak enhancement factor} (typically 3.3 for the North Sea, range 1–7).
-        \item $\sigma$ is the peak width parameter: $\sigma = 0.07$ for $\omega \leq \omega_p$, $\sigma = 0.09$ for $\omega > \omega_p$.
-    \end{itemize}
-    The JONSWAP spectrum is the de facto standard for the design of offshore structures in many parts of the world.
+\subsection{Industrial Use and Limitations}
+Airy theory is the workhorse of ocean engineering:
+it underpins spectral analysis (Section~\ref{sec:spectral}), the Morison equation for
+loads on slender members, and operational wave forecasting models (WAM, WAVEWATCH~III).
+Its primary limitation is inaccuracy for steep waves, where it fails to predict
+asymmetry, higher harmonics, and mass transport.
 
-    \subsection{Directional Spreading}
-    Real waves come from different directions. This is modeled with a \emph{directional spectrum}:
-    \begin{equation}
-        S(\omega, \theta) = S(\omega) D(\theta, \omega),
-    \end{equation}
-    where $D(\theta, \omega)$ is a directional spreading function, typically of the form $D(\theta) \propto \cos^s(\theta)$, centered on the main wave direction.
+% ============================================================
+\section{Stokes Wave Theory}
+\label{sec:stokes}
 
-    \section{Real Ocean Waves: Properties and Depth Effects}
-    \subsection{Practical Ranges of Wave Parameters}
-    \begin{table}[H]
-        \centering
-        \caption{Typical Ranges for Ocean Wind Waves}
-        \begin{tabular}{@{}lL{4cm}L{4cm}@{}}
-            \toprule
-            Parameter & Typical Range & Extreme/Remarkable Events \\
-            \midrule
-            Height ($H$) & 0.5 – 6 m & Up to 30+ m (e.g., recorded 19m in North Sea, estimated 30m+ in North Atlantic) \\
-            Period ($T$) & 4 – 12 s & Up to 20-25 s (swell from distant storms) \\
-            Wavelength ($\lambda$) & 25 – 225 m & Up to ~800 m (for $T=25$s in deep water) \\
-            Steepness ($H/\lambda$) & 0.01 – 0.06 & Breaking limit ~0.14 (theoretical) in deep water \\
-            \bottomrule
-        \end{tabular}
-    \end{table}
+\subsection{Perturbation Approach}
+Stokes sought a solution as a power series in $\epsilon=ak$:
+\begin{align}
+  \phi &= \epsilon\phi_1 + \epsilon^2\phi_2 + \epsilon^3\phi_3 + \cdots, \\
+  \eta &= \epsilon\eta_1 + \epsilon^2\eta_2 + \epsilon^3\eta_3 + \cdots,
+\end{align}
+solved order-by-order, with $\phi_1$ and $\eta_1$ being the linear (Airy) solutions.
 
-    \subsection{Depth Classification and Effects}
-    The ratio of water depth to wavelength ($h/\lambda$) determines wave性质.
-    \begin{table}[H]
-        \centering
-        \caption{Wave Classification by Relative Depth}
-        \begin{tabular}{@{}llll@{}}
-            \toprule
-            Regime & Condition & Celerity $c$ & Particle Motion \\
-            \midrule
-            Deep Water & $h / \lambda > 1/2$ & $c = gT/(2\pi)$ & Circular orbits, decay with depth. \\
-            Intermediate Water & $1/20 < h/\lambda < 1/2$ & $c = \sqrt{\frac{g\lambda}{2\pi} \tanh(\frac{2\pi h}{\lambda})}$ & Elliptical orbits, reach bottom. \\
-            Shallow Water & $h / \lambda < 1/20$ & $c = \sqrt{gh}$ & Highly elliptical, nearly horizontal. \\
-            \bottomrule
-        \end{tabular}
-    \end{table}
-    \begin{itemize}
-        \item \textbf{Shoaling:} As waves move into shallow water, their speed and length decrease while their height increases (to conserve energy).
-        \item \textbf{Refraction:} Waves bend to become more parallel to depth contours due to changes in celerity across a wave front.
-        \item \textbf{Wave Breaking:} Waves break when their steepness exceeds a limit (e.g., spilling breaker on gentle slopes, plunging breaker on steep slopes).
-    \end{itemize}
+\subsection{Second-Order Theory}
+With $\theta=kx-\omega t$, the second-order surface elevation is:
+\begin{equation}
+  \eta = a\cos\theta
+    + \frac{a^2k}{4}\frac{\cosh(kh)(2+\cosh(2kh))}{\sinh^3(kh)}\cos 2\theta.
+\end{equation}
+In \textbf{deep water} this simplifies to:
+\begin{align}
+  \eta &= a\cos\theta + \tfrac{1}{2}a^2k\cos 2\theta, \\
+  \phi &= \frac{ag}{\omega}e^{kz}\sin\theta
+         + \frac{3}{8}a^2\omega e^{2kz}\sin 2\theta.
+\end{align}
+The second-order correction is positive at the crest and negative at the trough,
+producing the characteristic \emph{crest--trough asymmetry}.
 
-    \section{Industrial Usage Summary}
-    The choice of wave model in offshore engineering is application-specific.
-    \begin{table}[H]
-        \centering
-        \caption{Application of Wave Models in Offshore Engineering}
-        \begin{tabular}{@{}p{3cm}p{7cm}p{3cm}@{}}
-            \toprule
-            Design Aspect & Primary Wave Model & Rationale \\
-            \midrule
-            Fatigue Analysis & \textbf{Linear Spectral Model (Airy)} & Long-term analysis requires superposition of many sea states. Linear theory is computationally efficient and valid for the small waves that cause most fatigue cycles. \\
-            Global Extreme Loads (e.g., on ship hull, platform) & \textbf{JONSWAP Spectrum + 2nd/3rd Order Stokes Kinematics} & Captures the statistical likelihood of extreme events (spectrum) and the enhanced kinematics under large, steep wave crests (nonlinear theory). \\
-            Local Loads (e.g., slamming, green water) & \textbf{Fenton's High-Order or CFD} & Requires highly accurate description of the extreme wave profile and kinematics right at the crest. \\
-            Shallow Water Wave Loading & \textbf{CNW (Chappelear-Dean) or Stream Function} & Theories optimized for very shallow water where Stokes theories may not converge well. \\
-            Wave Forecasting & \textbf{Linear Spectral Models (WAM, WAVEWATCH III)} & Global and regional models solve the spectral energy balance equation. Linear physics is dominant for energy transfer over large scales. \\
-            \bottomrule
-        \end{tabular}
-    \end{table}
+\subsection{Higher-Order Properties}
+Key nonlinear features include:
+\begin{itemize}
+  \item \textbf{Phase speed increase:} Wave speed depends on wave height.
+  \item \textbf{Stokes drift:} Open particle orbits produce net mass transport in the
+    direction of propagation.
+  \item \textbf{Asymmetric kinematics:} Horizontal velocity under the crest exceeds
+    that under the trough.
+\end{itemize}
+Stokes 2nd and 5th order theories are codified in design standards for intermediate to
+deep water calculations \cite{DNVC205}.
 
-    \section{Tables of Models and Properties}
-    \begin{table}[H]
-        \centering
-        \caption{Chronology and Summary of Key Ocean Wave Models}
-        \begin{tabular}{@{}llL{6cm}@{}}
-            \toprule
-            Model & Year & Key Characteristics and Applications \\
-            \midrule
-            Gerstner & 1802 & First exact solution. Rotational flow, trochoidal profile. Largely of historical/theoretical interest. \\
-            Airy (Linear) & 1841 & Foundation of modern analysis. Irrotational, sinusoidal profile, dispersion relation. Used in spectral models, fatigue, preliminary design. \\
-            Stokes (2nd-5th) & 1847/ modern & Perturbation series in wave steepness. Irrotational, asymmetric profile, mass transport. Standard for nonlinear extreme load calculations. \\
-            Fenton (High-Order) & 1980s & Numerical/stream function solution. Highly accurate for very steep waves near breaking. Used for detailed crest kinematics. \\
-            Pierson-Moskowitz & 1964 & Energy spectrum for fully developed seas. Base spectrum for many applications. \\
-            JONSWAP & 1973 & Spectrum for fetch-limited seas (e.g., North Sea). Sharper peak. Industry standard for extreme event design. \\
-            \bottomrule
-        \end{tabular}
-    \end{table}
+% ============================================================
+\section{Wave-Theory Applicability and Shallow-Water Nonlinearity}
+\label{sec:applicability}
 
-    \section{Conclusion}
-    The mathematical description of ocean waves has undergone a remarkable evolution, driven by the needs of science and engineering. From Gerstner's elegant but restrictive trochoidal solution, the field advanced with Airy's revolutionary linearization, which provided the indispensable tools of the dispersion relation and spectral analysis. Stokes' nonlinear perturbation method broke new ground by explaining wave asymmetry, a crucial step validated by observation. The modern era, championed by Fenton, leverages computational power to achieve high-fidelity solutions for the most extreme waves.
+\subsection{Quantified applicability diagram}
+The classical Le M\'ehaut\'e chart is best understood today through the quantified update
+of Zhao, Wang, and Liu, who redrew the selection map in the
+\((h/L,\;H/L)\) plane, where \(h/L\) measures frequency dispersion and \(H/L\) measures
+nonlinearity.
+That choice is tighter and less arbitrary than the older textbook redraws in
+\((h/gT^2,\;H/gT^2)\), while remaining directly interpretable for engineering wave
+selection.
+The breaking limit is represented by Miche/Fenton-type steepness, the division between
+Stokes and cnoidal regimes is governed by the Ursell number, and the cnoidal subregions
+are further split by the elliptic parameter \(m\).
 
-    Today's engineering practice is a hybrid, leveraging the strengths of each theory. The randomness of the sea is captured through linear spectral models (Pierson-Moskowitz, JONSWAP), while the critical nonlinear physics of extreme waves is incorporated through Stokes or Fenton theories for load calculations. This sophisticated combination allows for the safe and efficient design of the vast array of structures that operate in the dynamic and challenging environment of the ocean.
+\begin{figure*}[t]
+\centering
+\IncludePGF{wave_sim-theories.pgf}
+\caption{Quantified Le M\'ehaut\'e-style applicability diagram in the
+\((h/L,\;H/L)\) plane.
+The figure shows the breaking limit, the \(UR=26\) divider, cnoidal-family
+boundaries, and the applicability regions for Airy, Stokes, cnoidal,
+solitary-wave, and Fenton stream-function / numerical methods.}
+\label{fig:lemehaute}
+\end{figure*}
 
+\subsection{Cnoidal wave theory}
+For shallow water, the relevant nonlinearity is better measured by the
+\emph{Ursell number},
+\begin{equation}
+  UR=\frac{HL^2}{h^3}
+  =\frac{H/L}{(h/L)^3}.
+\end{equation}
+Large values of \(UR\) indicate that nonlinearity dominates frequency dispersion, in
+which case Stokes expansions cease to be the natural asymptotic description and
+cnoidal-wave theory becomes more appropriate.
+This is precisely the transition that the quantified applicability chart seeks to mark.
+
+A periodic cnoidal wave may be written in terms of the Jacobi elliptic cosine as
+\begin{equation}
+  \eta(x,t)=\eta_2+H\,\mathrm{cn}^2\!\left(
+  \frac{2K(m)}{L}(x-ct),\,m\right),
+\end{equation}
+where \(K(m)\) is the complete elliptic integral of the first kind and \(m\in(0,1)\) is
+the elliptic modulus.
+Compared with Stokes waves, cnoidal waves have sharper crests and flatter, broader
+troughs.
+As \(m\to1\), the wavelength tends to infinity and the cnoidal solution approaches the
+solitary-wave limit.
+
+% ============================================================
+\section{Fenton's Higher-Order Theory}
+\label{sec:fenton}
+
+\subsection{Stream Function Method}
+Working in a reference frame moving with wave celerity $c$, the flow becomes steady.
+The stream function $\psi$ satisfies:
+\begin{align}
+  u - c &= -\frac{\partial\psi}{\partial z}, \quad
+  w      = \frac{\partial\psi}{\partial x},
+\end{align}
+and is expanded as a Fourier series:
+\begin{equation}
+  \psi(x,z) = -cz + \sum_{n=1}^{N} B_n \sin[nk(x-ct)]
+    \frac{\cosh[nk(z+h)]}{\cosh(nkh)},
+\end{equation}
+where coefficients $B_n$ and celerity $c$ are found numerically by minimizing the
+error in the dynamic FSBC over $N$ collocation points on the free surface.
+
+\subsection{Advantages and Application}
+This formulation converges faster than the Stokes perturbation series for very steep
+waves.
+Fenton's 5th- or 10th-order stream function theory is implemented in industry-standard
+software and is considered accurate even for waves near the breaking limit
+\cite{Fenton1990,DNVC205}.
+
+% ============================================================
+\section{Spectral Representations of Irregular Waves}
+\label{sec:spectral}
+
+\subsection{The Random Sea Concept}
+A real sea state is modeled as a stationary Gaussian random process:
+\begin{equation}
+  \eta(t) = \sum_{i=1}^{N} a_i\cos(\omega_i t + \epsilon_i),
+\end{equation}
+where $\epsilon_i$ are random phases uniformly distributed on $[0,2\pi]$.
+
+\subsection{The Variance Spectrum}
+The wave variance spectrum $S_\eta(\omega)$ encodes how energy is distributed across
+frequencies.
+Significant wave height $H_s$ is related to the zeroth spectral moment:
+\begin{equation}
+  H_s \approx H_{m0} = 4\sqrt{m_0}, \quad
+  m_0 = \int_0^\infty S_\eta(\omega)\,d\omega.
+\end{equation}
+
+\subsection{Pierson--Moskowitz Spectrum (1964)}
+For a fully developed sea, the PM spectrum is:
+\begin{equation}
+  S_\eta(\omega) = \alpha g^2\omega^{-5}
+    \exp\!\left[-\beta\!\left(\frac{\omega_p}{\omega}\right)^{\!4}\right],
+\end{equation}
+with $\alpha=8.1\times10^{-3}$, $\beta=0.74$, and peak frequency
+$\omega_p = 0.855\,g/U_{19.5}$.
+Rewritten in terms of $H_s$:
+\begin{equation}
+  S_\eta(\omega) = \frac{5}{16}H_s^2\omega_p^4\omega^{-5}
+    \exp\!\left[-\frac{5}{4}\!\left(\frac{\omega_p}{\omega}\right)^{\!4}\right].
+\end{equation}
+
+\subsection{JONSWAP Spectrum (1973)}
+For fetch-limited conditions the JONSWAP spectrum modifies the PM form:
+\begin{equation}
+  S_{\text{JS}}(\omega) = S_{\text{PM}}(\omega)\cdot
+    \gamma^{\exp\!\left[-\frac{(\omega-\omega_p)^2}{2\sigma^2\omega_p^2}\right]},
+\end{equation}
+where $\gamma$ is the peak enhancement factor (typically 3.3; range 1--7), and
+$\sigma=0.07$ for $\omega\le\omega_p$, $\sigma=0.09$ for $\omega>\omega_p$.
+JONSWAP is the de facto standard for offshore structure design worldwide.
+
+\subsection{Directional Spreading}
+Real seas are multi-directional, modeled by:
+\begin{equation}
+  S(\omega,\theta) = S(\omega)\,D(\theta,\omega),
+\end{equation}
+where $D(\theta)\propto\cos^s(\theta)$ is a spreading function centered on the main
+wave direction.
+
+\subsection{Rogue and Freak Waves}
+A modern review of ocean-wave theory should also acknowledge \emph{rogue} or
+\emph{freak} waves: unusually large individual waves embedded in an otherwise random sea.
+Operational offshore guidance commonly characterizes such events by criteria such as
+\begin{equation}
+  \frac{H_{\max}}{H_s} > 2
+  \qquad \text{or} \qquad
+  \frac{C_{\max}}{H_s} > 1.3,
+\end{equation}
+where $H_{\max}$ is the maximum individual wave height in a record and $C_{\max}$ is the
+maximum crest elevation \cite{DNVC205}.
+
+One important nonlinear mechanism is the Benjamin--Feir (modulational) instability of a
+narrowband, steep wave train \cite{BenjaminFeir1967}.
+Its strength is often summarized by the Benjamin--Feir index (BFI),
+\begin{equation}
+  \mathrm{BFI} = \sqrt{2}\,\frac{\varepsilon}{\nu},
+\end{equation}
+where $\varepsilon$ is spectral steepness and $\nu$ is spectral bandwidth.
+Large BFI indicates enhanced susceptibility to nonlinear focusing, especially in
+long-crested deep-water conditions.
+However, field evidence suggests that rogue-wave occurrence in the real ocean is not
+explained by BFI alone; directional spreading, crossing seas, current gradients, and
+linear/dispersive focusing may all contribute \cite{Gemmrich2022,Hafner2021}.
+
+The best-known measured example is the \emph{Draupner wave}, recorded on
+1 January 1995 at the Draupner platform in the North Sea.
+Its measurement transformed rogue waves from anecdotal reports into a concrete offshore
+design concern \cite{ECMWFDraupner,DNVC205}.
+
+% ============================================================
+\section{Real Ocean Waves: Properties and Depth Effects}
+\label{sec:realwaves}
+
+\subsection{Practical Ranges of Wave Parameters}
+Table~\ref{tab:waveparams} summarizes typical ranges for ocean wind waves.
+
+\begin{table}[H]
+  \centering
+  \caption{Typical Ranges for Ocean Wind Waves}
+  \label{tab:waveparams}
+  \small
+  \begin{tabular}{@{}lL{2.1cm}L{2.2cm}@{}}
+    \toprule
+    Parameter & Typical Range & Extreme Events \\
+    \midrule
+    Height $H$        & 0.5--6\,m
+      & $>$30\,m estimated (N.~Atlantic); 19\,m recorded (North Sea) \\
+    Period $T$        & 4--12\,s
+      & 20--25\,s (distant storm swell) \\
+    Length $\lambda$  & 25--225\,m
+      & $\sim$800\,m ($T=25$\,s, deep water) \\
+    Steepness $H/\lambda$ & 0.01--0.06
+      & $\approx0.14$ (deep-water breaking limit) \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\subsection{Depth Classification and Effects}
+The ratio $h/\lambda$ governs wave behavior.
+Table~\ref{tab:depthtable} summarizes the three regimes.
+
+\begin{table}[H]
+  \centering
+  \caption{Wave Classification by Relative Depth}
+  \label{tab:depthtable}
+  \small
+  \begin{tabular}{@{}lL{1.4cm}L{1.4cm}L{1.6cm}@{}}
+    \toprule
+    Regime & Condition & Celerity $c$ & Particle Motion \\
+    \midrule
+    Deep
+      & $h/\lambda>\tfrac{1}{2}$
+      & $gT/(2\pi)$
+      & Circular, decaying with depth \\
+    Inter\-mediate
+      & $\tfrac{1}{20}<h/\lambda<\tfrac{1}{2}$
+      & Full dispersion relation
+      & Elliptical, reaching bottom \\
+    Shallow
+      & $h/\lambda<\tfrac{1}{20}$
+      & $\sqrt{gh}$
+      & Nearly horizontal \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\begin{itemize}
+  \item \textbf{Shoaling:} Speed and wavelength decrease; height increases to conserve
+    energy as waves enter shallow water.
+  \item \textbf{Refraction:} Waves bend toward depth contours due to celerity gradients
+    across the wave front.
+  \item \textbf{Breaking:} Waves break when steepness exceeds a threshold (spilling on
+    gentle slopes; plunging on steep slopes).
+\end{itemize}
+
+The shallow-water regime is also the regime in which cnoidal and solitary-wave ideas
+become practically important.
+In dimensionless terms, depth alone is not sufficient to select the correct theory:
+nonlinearity and dispersion must be considered jointly, which is precisely what the
+Le M\'ehaut\'e chart in Fig.~\ref{fig:lemehaute} summarizes \cite{LeMehaute1976,Zhao2024}.
+
+% ============================================================
+\section{Industrial Usage Summary}
+\label{sec:industrial}
+
+Table~\ref{tab:industrial} summarizes recommended wave models for common offshore
+engineering tasks.
+
+\begin{table*}[t]
+  \centering
+  \caption{Application of Wave Models in Offshore Engineering}
+  \label{tab:industrial}
+  \small
+  \begin{tabular}{@{}L{2.8cm}L{6.5cm}L{3.5cm}@{}}
+    \toprule
+    Design Aspect & Primary Wave Model & Rationale \\
+    \midrule
+    Fatigue analysis
+      & Linear spectral model (Airy)
+      & Computationally efficient; valid for small waves dominating fatigue
+        accumulation; supports superposition of many sea states. \\[4pt]
+    Global extreme loads (ship hull, platform)
+      & JONSWAP spectrum $+$ 2nd/3rd-order Stokes kinematics
+      & Captures statistical likelihood of extremes (spectrum) and enhanced crest
+        kinematics (nonlinear theory). \\[4pt]
+    Local loads (slamming, green water)
+      & Fenton high-order or CFD
+      & Requires highly accurate wave profile and kinematics at the extreme crest. \\[4pt]
+    Shallow-water wave loading
+      & Cnoidal (large $UR$), or stream function/Fourier near transition and near breaking
+      & Stokes theory loses validity in very shallow water; cnoidal theory captures long,
+        nonlinear shallow-water waves, while stream-function methods are preferred close
+        to the transition region and near the limiting steep-wave boundary. \\[4pt]
+    Wave forecasting
+      & Linear spectral models (WAM, WAVEWATCH~III)
+      & Global/regional spectral energy balance; linear physics dominates at large
+        scale. \\
+    \bottomrule
+  \end{tabular}
+\end{table*}
+
+% ============================================================
+\section{Chronology of Key Wave Models}
+\label{sec:modeltable}
+
+Table~\ref{tab:chronology} provides a chronological summary of the key ocean wave
+models discussed in this paper.
+
+\begin{table*}[t]
+  \centering
+  \caption{Chronology and Summary of Key Ocean Wave Models}
+  \label{tab:chronology}
+  \small
+  \begin{tabular}{@{}L{2.3cm}lL{8.5cm}@{}}
+    \toprule
+    Model & Year & Key Characteristics and Applications \\
+    \midrule
+    Gerstner        & 1802
+      & First exact solution. Rotational flow, trochoidal profile.
+        Largely of historical/theoretical interest; used in computer graphics. \\
+    Airy (Linear)   & 1841
+      & Foundation of modern analysis. Irrotational, sinusoidal profile,
+        dispersion relation. Used in spectral models, fatigue, and preliminary design. \\
+    Stokes (2nd--5th) & 1847/modern
+      & Perturbation series in wave steepness. Irrotational, asymmetric profile,
+        mass transport. Standard for nonlinear extreme load calculations. \\
+    Cnoidal / solitary & 1895/modern
+      & Shallow-water nonlinear theory associated with long waves and large Ursell number.
+        Used in coastal and harbour engineering; the solitary wave is recovered in the
+        long-wave limit. \\
+    Fenton (high-order) & 1980s
+      & Numerical/stream-function solution. Highly accurate for steep waves near
+        breaking and useful across transition regimes. Used for detailed crest
+        kinematics in advanced structural analysis. \\
+    Pierson--Moskowitz & 1964
+      & Energy spectrum for fully developed seas. Base spectrum for many
+        applications. \\
+    JONSWAP         & 1973
+      & Spectrum for fetch-limited seas (e.g., North Sea). Sharper spectral peak.
+        Industry standard for extreme event design worldwide. \\
+    Rogue-wave design guidance & modern
+      & Statistical and nonlinear interpretation of extreme individual waves,
+        including freak-wave criteria used in offshore design recommendations. \\
+    \bottomrule
+  \end{tabular}
+\end{table*}
+
+% ============================================================
+\section{Conclusion}
+\label{sec:conclusion}
+
+The mathematical description of ocean waves has undergone a remarkable evolution driven
+by the needs of science and engineering.
+From Gerstner's elegant but restrictive trochoidal solution, the field advanced with
+Airy's revolutionary linearization, providing the indispensable dispersion relation and
+the framework for spectral analysis.
+Stokes' nonlinear perturbation method explained wave asymmetry, a crucial step validated
+by observation.
+For shallow water, cnoidal and solitary-wave theories provided the correct nonlinear
+long-wave description where steepness-based Stokes expansions cease to be appropriate.
+The modern era, championed by Fenton and related numerical formulations, leverages
+computational power to achieve high-fidelity solutions for the most extreme waves.
+
+Today's engineering practice is a hybrid: the randomness of the sea is captured through
+linear spectral models (Pierson--Moskowitz, JONSWAP), while the critical nonlinear
+physics of extreme waves is incorporated via Stokes, cnoidal, or stream-function/Fenton
+theories for load calculations.
+This combination enables the safe and efficient design of structures that operate in the
+dynamic and challenging ocean environment.
+Modern offshore guidance additionally recognizes rogue or freak waves as a practical
+design consideration, linking classical wave theory to contemporary reliability-based
+assessment \cite{DNVC205}.
+
+% ============================================================
+\begin{thebibliography}{99}
+
+\bibitem{LeMehaute1976}
+B.~Le M\'ehaut\'e,
+\emph{An Introduction to Hydrodynamics and Water Waves}.
+New York, NY, USA: Springer, 1976.
+
+\bibitem{Zhao2024}
+K.~Zhao, Y.~Wang, and P.~L.-F.~Liu,
+``A guide for selecting periodic water wave theories---Le M\'ehaut\'e (1976)'s graph revisited,''
+\emph{Coastal Engineering}, vol.~188, Art.~104432, 2024.
+
+\bibitem{Fenton1990}
+J.~D.~Fenton,
+``Nonlinear wave theories,''
+in \emph{The Sea, Vol.~9: Ocean Engineering Science},
+B.~Le M\'ehaut\'e and D.~M.~Hanes, Eds.
+New York, NY, USA: Wiley, 1990, pp.~3--25.
+
+\bibitem{DNVC205}
+DNV GL,
+\emph{DNVGL-RP-C205: Environmental Conditions and Environmental Loads},
+Recommended Practice, Aug.~2017.
+
+\bibitem{BenjaminFeir1967}
+T.~B.~Benjamin and J.~E.~Feir,
+``The disintegration of wave trains on deep water. Part 1. Theory,''
+\emph{Journal of Fluid Mechanics}, vol.~27, no.~3, pp.~417--430, 1967.
+
+\bibitem{Gemmrich2022}
+J.~Gemmrich, T.~Breivik, A.~Kromer, L.~Lenain, and M.~A.~Donelan,
+``Generation mechanism and prediction of an observed rogue wave,''
+\emph{Scientific Reports}, vol.~12, Art.~1718, 2022.
+
+\bibitem{Hafner2021}
+D.~Hafner, C.~Gemmrich, and J.~M.~Janssen,
+``Real-world rogue wave probabilities,''
+\emph{Scientific Reports}, vol.~11, Art.~10084, 2021.
+
+\bibitem{ECMWFDraupner}
+ECMWF,
+``What conditions led to the Draupner freak wave?''
+\emph{ECMWF Newsletter}, no.~148, pp.~12--16, 2016.
+
+\end{thebibliography}
+
+% ============================================================
 \end{document}
