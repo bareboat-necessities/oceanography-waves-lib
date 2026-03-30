@@ -33,6 +33,19 @@ https://github.com/bareboat-necessities/oceanography-waves-lib/releases/tag/vTes
 
 ## Building and running
 
+### CMake (top-level project)
+
+```bash
+cmake -S . -B build -DOWLIB_BUILD_TESTS=ON -DOWLIB_BUILD_DATA_SIM=ON
+cmake --build build -j
+ctest --test-dir build --output-on-failure
+```
+
+Useful CMake options:
+- `OWLIB_BUILD_TESTS` (default `ON`) builds `owlib_tests`.
+- `OWLIB_BUILD_DATA_SIM` (default `ON`) builds `waves_sim`.
+- `OWLIB_BUILD_PLOTS` (default `OFF`) builds `fenton_plots_cpp`.
+
 ### 1) Run test executable
 
 ```bash
