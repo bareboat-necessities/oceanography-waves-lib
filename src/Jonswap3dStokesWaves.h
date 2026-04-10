@@ -445,7 +445,7 @@ IMUReadings getIMUReadings(double x, double y, double t,
     const Eigen::Matrix3d R2 = rotationMatrixAt(x, y, t + dt);
 
     // 5) Relative rotation over the sample (expressed in body frame at t)
-    const Eigen::Matrix3d R_rel = R1.transpose() * R2;
+    const Eigen::Matrix3d R_rel = R2 * R1.transpose();
 
     // 6) Matrix–log mapping to angular velocity:
     //    v = vee(R_rel - R_rel^T) = 2 sin(theta) * u
