@@ -236,41 +236,45 @@ public:
     //   - Orientation from ORDER-consistent surface slopes (wave-following buoy).
     // By design, getIMUReadings() uses the Lagrangian surface case, consistent with
     // a buoy-mounted IMU.
-    IMUReadingsBody getIMUReadings(double x, double y, double t, double z = 0.0,
-                                   double dt = 1e-3) const {
-        IMUReadingsBody imu;
+IMUReadingsBody getIMUReadings(double x, double y, double t,
+                               double z = 0.0, double dt = 1e-3) const {
+    IMUReadingsBody imu;
 
-        // Lagrangian particle at sensor depth (z ≤ 0)
-        auto state = computeWaveState(x, y, z, t, WaveFrame::Lagrangian);
+    auto state = computeWaveState(x, y, z, t, WaveFrame::Lagrangian);
 
-        // Advected surface position for the buoy
-        const double px = x + state.displacement.x();
-        const double py = y + state.displacement.y();
+    const double px = x + state.displacement.x();
+    const double py = y + state.displacement.y();
 
-        // Orientation from slopes at *advected* location
-        const auto slopes = getSurfaceSlopes(px, py, t);
-        const Eigen::Matrix3d R1 = orientationFromSlopes(slopes);
+    const auto slopes = getSurfaceSlopes(px, py, t);
+    const Eigen::Matrix3d C_wb = orientationFromSlopes(slopes);
 
-        // Body accelerometer: specific force = R*(a - g)
-        const Eigen::Vector3d g_world(0, 0, -g_);
-        imu.accel_body = R1 * (state.acceleration - g_world);
-        imu.accel_debug = R1 * (-g_world);
+    const Eigen::Vector3d g_world(0.0, 0.0, -g_);
+    imu.accel_body  = C_wb * (state.acceleration - g_world);
+    imu.accel_debug = C_wb * (-g_world);
 
-        // Predict advected position at t+dt (simple forward Euler)
-        const double px_next = px + state.velocity.x() * dt;
-        const double py_next = py + state.velocity.y() * dt;
+    auto st_prev = computeWaveState(x, y, z, t - 0.5 * dt, WaveFrame::Lagrangian);
+    auto st_next = computeWaveState(x, y, z, t + 0.5 * dt, WaveFrame::Lagrangian);
 
-        // Orientation at t+dt from slopes at advected-next location
-        const auto slopes_next = getSurfaceSlopes(px_next, py_next, t + dt);
-        const Eigen::Matrix3d R2 = orientationFromSlopes(slopes_next);
+    const double px_prev = x + st_prev.displacement.x();
+    const double py_prev = y + st_prev.displacement.y();
+    const double px_next = x + st_next.displacement.x();
+    const double py_next = y + st_next.displacement.y();
 
-        // Gyro via finite rotation
-        const Eigen::Matrix3d Rdelta = R2 * R1.transpose();
-        const Eigen::AngleAxisd aa(Rdelta);
-        imu.gyro_body = (aa.axis() * aa.angle()) / dt;
+    const Eigen::Matrix3d C_prev =
+        orientationFromSlopes(getSurfaceSlopes(px_prev, py_prev, t - 0.5 * dt));
+    const Eigen::Matrix3d C_next =
+        orientationFromSlopes(getSurfaceSlopes(px_next, py_next, t + 0.5 * dt));
 
-        return imu;
-    }
+    const Eigen::Matrix3d Cdot = (C_next - C_prev) / dt;
+    Eigen::Matrix3d Omega = -Cdot * C_wb.transpose();
+    Omega = 0.5 * (Omega - Omega.transpose());
+
+    imu.gyro_body.x() = Omega(2,1);
+    imu.gyro_body.y() = Omega(0,2);
+    imu.gyro_body.z() = Omega(1,0);
+
+    return imu;
+}
 
     // Build local wave IMU orientation from slopes
     Eigen::Matrix3d orientationFromSlopes(const Eigen::Vector2d &slopes) const {
