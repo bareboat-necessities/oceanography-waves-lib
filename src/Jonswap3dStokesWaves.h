@@ -430,45 +430,24 @@ IMUReadings getIMUReadings(double x, double y, double t,
                            double z = 0.0, double dt = 1e-3) const {
     IMUReadings imu;
 
-    // 1) Lagrangian particle state at sensor depth
     const auto state = getLagrangianState(x, y, t, z);
 
-    // 2) Orientation at time t
-    const Eigen::Matrix3d R1 = rotationMatrixAt(x, y, t);
+    const Eigen::Matrix3d C_wb = rotationMatrixAt(x, y, t);
 
-    // 3) Accelerometer: specific force in body frame  f_b = R_WI * (a_W - g_W)
     const Eigen::Vector3d g_world(0.0, 0.0, -g_);
-    imu.accel_body = R1 * (state.acceleration - g_world);
-    imu.accel_debug = R1 * (-g_world);
+    imu.accel_body = C_wb * (state.acceleration - g_world);
+    imu.accel_debug = C_wb * (-g_world);
 
-    // 4) Orientation at t + dt (same buoy reference point, no advection)
-    const Eigen::Matrix3d R2 = rotationMatrixAt(x, y, t + dt);
+    const Eigen::Matrix3d C_prev = rotationMatrixAt(x, y, t - 0.5 * dt);
+    const Eigen::Matrix3d C_next = rotationMatrixAt(x, y, t + 0.5 * dt);
+    const Eigen::Matrix3d Cdot   = (C_next - C_prev) / dt;
 
-    // 5) Relative rotation over the sample (expressed in body frame at t)
-    const Eigen::Matrix3d R_rel = R2 * R1.transpose();
+    Eigen::Matrix3d Omega = Cdot * C_wb.transpose();
+    Omega = 0.5 * (Omega - Omega.transpose());
 
-    // 6) Matrix–log mapping to angular velocity:
-    //    v = vee(R_rel - R_rel^T) = 2 sin(theta) * u
-    //    theta = acos((trace(R_rel) - 1)/2),  omega = (theta/(2 sin theta)) * v / dt
-    Eigen::Vector3d v(
-        R_rel(2,1) - R_rel(1,2),
-        R_rel(0,2) - R_rel(2,0),
-        R_rel(1,0) - R_rel(0,1)
-    );
-
-    double c = (R_rel.trace() - 1.0) * 0.5;               // cos(theta)
-    if (c > 1.0) c = 1.0;
-    else if (c < -1.0) c = -1.0;
-
-    const double theta = std::acos(c);
-    const double s = std::sqrt(std::max(0.0, 1.0 - c * c)); // |sin(theta)|
-
-    if (theta < 1e-12 || s < 1e-12) {
-        // Small-angle limit: R_rel - R_rel^T ≈ 2 theta [u]_x  ⇒ v ≈ 2 theta u
-        imu.gyro_body = v / (2.0 * dt);
-    } else {
-        imu.gyro_body = (theta / (2.0 * s)) * v / dt;
-    }
+    imu.gyro_body.x() = Omega(2,1);
+    imu.gyro_body.y() = Omega(0,2);
+    imu.gyro_body.z() = Omega(1,0);
 
     return imu;
 }
