@@ -300,7 +300,7 @@ IMUReadingsBody getIMUReadings(double x, double y, double t,
         return R_WI;
     }
 
-    // Return world-frame Euler angles (deg) from surface slopes
+    // Return Euler angles of the world→body rotation in nautical/Z-up convention (deg) from surface slopes
     Eigen::Vector3d getEulerAngles(double x, double y, double t) const {
         // Lagrangian surface particle for buoy position
         auto st = computeWaveState(x, y, 0.0, t, WaveFrame::Lagrangian);
