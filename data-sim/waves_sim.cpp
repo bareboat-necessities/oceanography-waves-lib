@@ -7,6 +7,7 @@
 */
 
 #include <iostream>
+#include <Eigen/Geometry>
 
 #define EIGEN_NON_ARDUINO
 
@@ -59,9 +60,18 @@ static void fill_imu_sample_from_readings(IMU_Sample &dst, const IMU &imu) {
     dst.gyro_z = static_cast<float>(imu.gyro_body.z());
 }
 
+static void fill_imu_reference_quaternion(IMU_Sample &dst, const Eigen::Matrix3d &C_wb) {
+    const Eigen::Quaterniond q(C_wb);
+    dst.q_wb_zu_w = static_cast<float>(q.w());
+    dst.q_wb_zu_x = static_cast<float>(q.x());
+    dst.q_wb_zu_y = static_cast<float>(q.y());
+    dst.q_wb_zu_z = static_cast<float>(q.z());
+}
+
 // Default IMU filler (zeros)
 static void fill_default_imu(IMU_Sample &imu) {
     imu = {}; // zero all fields
+    imu.q_wb_zu_w = 1.0f;
 }
 
 template<typename Model>
@@ -141,6 +151,11 @@ static Wave_Data_Sample sample_jonswap(double t, Jonswap3dStokesWaves<N> &model)
     out.imu.roll_deg  = static_cast<float>(euler.x());
     out.imu.pitch_deg = static_cast<float>(euler.y());
     out.imu.yaw_deg   = static_cast<float>(euler.z());
+    auto lagrangian_state = model.getLagrangianState(0.0, 0.0, t, 0.0);
+    const double px = lagrangian_state.displacement.x();
+    const double py = lagrangian_state.displacement.y();
+    const Eigen::Vector2d slopes = model.getSurfaceSlopes(px, py, t);
+    fill_imu_reference_quaternion(out.imu, model.orientationFromSlopes(slopes));
 
     return out;
 }
@@ -164,6 +179,11 @@ static Wave_Data_Sample sample_pmstokes(double t, PMStokesN3dWaves<N, ORDER> &mo
     out.imu.roll_deg  = static_cast<float>(euler.x());
     out.imu.pitch_deg = static_cast<float>(euler.y());
     out.imu.yaw_deg   = static_cast<float>(euler.z());
+    auto lagrangian_state = model.getLagrangianState(t);
+    const double px = lagrangian_state.displacement.x();
+    const double py = lagrangian_state.displacement.y();
+    const Eigen::Vector2d slopes = model.getSurfaceSlopes(px, py, t);
+    fill_imu_reference_quaternion(out.imu, model.orientationFromSlopes(slopes));
 
     return out;
 }

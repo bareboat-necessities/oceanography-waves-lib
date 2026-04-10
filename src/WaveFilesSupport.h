@@ -97,6 +97,7 @@ struct IMU_Sample {
     float acc_bx{}, acc_by{}, acc_bz{};
     float gyro_x{}, gyro_y{}, gyro_z{};
     float roll_deg{}, pitch_deg{}, yaw_deg{};
+    float q_wb_zu_w{}, q_wb_zu_x{}, q_wb_zu_y{}, q_wb_zu_z{};
 };
 
 struct Wave_Data_Sample {
@@ -254,7 +255,8 @@ public:
             << "acc_x,acc_y,acc_z,"
             << "acc_bx,acc_by,acc_bz,"
             << "gyro_x,gyro_y,gyro_z,"
-            << "roll_deg,pitch_deg,yaw_deg\n";
+            << "roll_deg,pitch_deg,yaw_deg,"
+            << "q_wb_zu_w,q_wb_zu_x,q_wb_zu_y,q_wb_zu_z\n";
     }
 
     void write(const Wave_Data_Sample &s) {
@@ -264,7 +266,9 @@ public:
             << s.wave.acc_x  << "," << s.wave.acc_y  << "," << s.wave.acc_z << ","
             << s.imu.acc_bx  << "," << s.imu.acc_by  << "," << s.imu.acc_bz << ","
             << s.imu.gyro_x  << "," << s.imu.gyro_y  << "," << s.imu.gyro_z << ","
-            << s.imu.roll_deg << "," << s.imu.pitch_deg << "," << s.imu.yaw_deg
+            << s.imu.roll_deg << "," << s.imu.pitch_deg << "," << s.imu.yaw_deg << ","
+            << s.imu.q_wb_zu_w << "," << s.imu.q_wb_zu_x << ","
+            << s.imu.q_wb_zu_y << "," << s.imu.q_wb_zu_z
             << "\n";
     }
 
@@ -300,15 +304,29 @@ private:
 
     static bool read_csv_record(const std::string &line, Wave_Data_Sample &s) {
         std::istringstream iss(line);
-        char comma;
-        iss >> s.time >> comma
-            >> s.wave.disp_x >> comma >> s.wave.disp_y >> comma >> s.wave.disp_z >> comma
-            >> s.wave.vel_x  >> comma >> s.wave.vel_y  >> comma >> s.wave.vel_z  >> comma
-            >> s.wave.acc_x  >> comma >> s.wave.acc_y  >> comma >> s.wave.acc_z  >> comma
-            >> s.imu.acc_bx  >> comma >> s.imu.acc_by  >> comma >> s.imu.acc_bz  >> comma
-            >> s.imu.gyro_x  >> comma >> s.imu.gyro_y  >> comma >> s.imu.gyro_z  >> comma
-            >> s.imu.roll_deg >> comma >> s.imu.pitch_deg >> comma >> s.imu.yaw_deg;
-        return static_cast<bool>(iss);
+        char comma = '\0';
+        if (!(iss >> s.time >> comma
+                  >> s.wave.disp_x >> comma >> s.wave.disp_y >> comma >> s.wave.disp_z >> comma
+                  >> s.wave.vel_x  >> comma >> s.wave.vel_y  >> comma >> s.wave.vel_z  >> comma
+                  >> s.wave.acc_x  >> comma >> s.wave.acc_y  >> comma >> s.wave.acc_z  >> comma
+                  >> s.imu.acc_bx  >> comma >> s.imu.acc_by  >> comma >> s.imu.acc_bz  >> comma
+                  >> s.imu.gyro_x  >> comma >> s.imu.gyro_y  >> comma >> s.imu.gyro_z  >> comma
+                  >> s.imu.roll_deg >> comma >> s.imu.pitch_deg >> comma >> s.imu.yaw_deg)) {
+            return false;
+        }
+
+        if (iss >> comma
+                >> s.imu.q_wb_zu_w >> comma >> s.imu.q_wb_zu_x >> comma
+                >> s.imu.q_wb_zu_y >> comma >> s.imu.q_wb_zu_z) {
+            return true;
+        }
+
+        // Backward compatibility with older CSV files without quaternion columns.
+        s.imu.q_wb_zu_w = 1.0f;
+        s.imu.q_wb_zu_x = 0.0f;
+        s.imu.q_wb_zu_y = 0.0f;
+        s.imu.q_wb_zu_z = 0.0f;
+        return true;
     }
 };
 
