@@ -442,7 +442,7 @@ IMUReadings getIMUReadings(double x, double y, double t,
     const Eigen::Matrix3d C_next = rotationMatrixAt(x, y, t + 0.5 * dt);
     const Eigen::Matrix3d Cdot   = (C_next - C_prev) / dt;
 
-    Eigen::Matrix3d Omega = Cdot * C_wb.transpose();
+    Eigen::Matrix3d Omega = -Cdot * C_wb.transpose();
     Omega = 0.5 * (Omega - Omega.transpose());
 
     imu.gyro_body.x() = Omega(2,1);
