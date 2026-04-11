@@ -278,26 +278,46 @@ IMUReadingsBody getIMUReadings(double x, double y, double t,
 
     // Build local wave IMU orientation from slopes
     Eigen::Matrix3d orientationFromSlopes(const Eigen::Vector2d &slopes) const {
-        Eigen::Vector3d n(-slopes.x(), -slopes.y(), 1.0);
-        n.normalize();
+        // Surface: z = eta(x,y)
+        // slopes.x() = d eta / dx
+        // slopes.y() = d eta / dy
+        //
+        // We want a tilt-only frame with yaw fixed to zero.
+        // Using world->body convention:
+        //
+        //   C_wb = Rx(roll) * Ry(pitch)
+        //
+        // with roll/pitch chosen so that body Z aligns with the surface normal:
+        //
+        //   n_world ~ [ -sx, -sy, 1 ]
+        //
+        // This gives:
+        //   pitch = atan(sx)
+        //   roll  = atan2(-sy, sqrt(1 + sx^2))
+        //
+        // Result:
+        //   - body Z follows the wave normal
+        //   - yaw is fixed (no arbitrary twist)
+        //   - C_wb remains world->body
 
-        // project global X onto tangent plane for x-axis
-        Eigen::Vector3d x_axis = Eigen::Vector3d::UnitX();
-        x_axis -= n * (x_axis.dot(n));
-        if (x_axis.norm() < 1e-6) {
-            x_axis = Eigen::Vector3d::UnitY(); // fallback
-            x_axis -= n * (x_axis.dot(n));
-        }
-        x_axis.normalize();
+        const double sx = slopes.x();
+        const double sy = slopes.y();
 
-        Eigen::Vector3d y_axis = n.cross(x_axis);
-        y_axis.normalize();
+        const double pitch = std::atan(sx);
+        const double roll  = std::atan2(-sy, std::sqrt(1.0 + sx * sx));
 
-        Eigen::Matrix3d R_WI; // world->IMU
-        R_WI.row(0) = x_axis.transpose();
-        R_WI.row(1) = y_axis.transpose();
-        R_WI.row(2) = n.transpose();
-        return R_WI;
+        const double sr = std::sin(roll);
+        const double cr = std::cos(roll);
+        const double sp = std::sin(pitch);
+        const double cp = std::cos(pitch);
+
+        Eigen::Matrix3d C_wb;
+        C_wb <<
+            cp,        0.0,   sp,
+            sr * sp,   cr,   -sr * cp,
+           -cr * sp,   sr,    cr * cp;
+
+        return C_wb;
     }
 
     // Return Euler angles of the world→body rotation in nautical/Z-up convention (deg) from surface slopes
@@ -307,18 +327,15 @@ IMUReadingsBody getIMUReadings(double x, double y, double t,
         const double px = x + st.displacement.x();
         const double py = y + st.displacement.y();
 
-        auto slopes = getSurfaceSlopes(px, py, t);
-        Eigen::Matrix3d R_WI = orientationFromSlopes(slopes);
+        const auto slopes = getSurfaceSlopes(px, py, t);
 
-        double roll, pitch, yaw;
-        pitch = std::asin(-R_WI(2,0));
-        if (std::abs(std::cos(pitch)) > 1e-6) {
-            roll  = std::atan2(R_WI(2,1), R_WI(2,2));
-            yaw   = std::atan2(R_WI(1,0), R_WI(0,0));
-        } else {
-            roll = std::atan2(-R_WI(1,2), R_WI(1,1));
-            yaw  = 0.0;
-        }
+        const double sx = slopes.x();
+        const double sy = slopes.y();
+
+        const double pitch = std::atan(sx);
+        const double roll  = std::atan2(-sy, std::sqrt(1.0 + sx * sx));
+        const double yaw   = 0.0;
+
         return Eigen::Vector3d(
             roll  * 180.0 / M_PI,
             pitch * 180.0 / M_PI,

@@ -392,32 +392,61 @@ class EIGEN_ALIGN_MAX Jonswap3dStokesWaves {
 
     // build local wave IMU orientation from slopes
     Eigen::Matrix3d orientationFromSlopes(const Eigen::Vector2d &slopes) const {
-      Eigen::Vector3d n(-slopes.x(), -slopes.y(), 1.0);
-      n.normalize();
+      // Surface: z = eta(x,y)
+      // slopes.x() = d eta / dx
+      // slopes.y() = d eta / dy
+      //
+      // We want a tilt-only frame with yaw fixed to zero.
+      // Using world->body convention:
+      //
+      //   C_wb = Rx(roll) * Ry(pitch)
+      //
+      // with roll/pitch chosen so that body Z aligns with the surface normal:
+      //
+      //   n_world ~ [ -sx, -sy, 1 ]
+      //
+      // This gives:
+      //   pitch = atan(sx)
+      //   roll  = atan2(-sy, sqrt(1 + sx^2))
+      //
+      // Result:
+      //   - body Z follows the wave normal
+      //   - yaw is fixed (no arbitrary twist)
+      //   - C_wb remains world->body
 
-      // project global X onto tangent plane for x-axis
-      Eigen::Vector3d x_axis = Eigen::Vector3d::UnitX();
-      x_axis -= n * (x_axis.dot(n));
-      if (x_axis.norm() < 1e-6) x_axis = Eigen::Vector3d::UnitY(); // fallback
-      x_axis.normalize();
+      const double sx = slopes.x();
+      const double sy = slopes.y();
 
-      Eigen::Vector3d y_axis = n.cross(x_axis);
+      const double pitch = std::atan(sx);
+      const double roll  = std::atan2(-sy, std::sqrt(1.0 + sx * sx));
 
-      Eigen::Matrix3d R_WI; // world->IMU
-      R_WI.row(0) = x_axis.transpose();
-      R_WI.row(1) = y_axis.transpose();
-      R_WI.row(2) = n.transpose();
-      return R_WI;
+      const double sr = std::sin(roll);
+      const double cr = std::cos(roll);
+      const double sp = std::sin(pitch);
+      const double cp = std::cos(pitch);
+
+      Eigen::Matrix3d C_wb;
+      C_wb <<
+          cp,        0.0,   sp,
+          sr * sp,   cr,   -sr * cp,
+         -cr * sp,   sr,    cr * cp;
+
+      return C_wb;
     }
 
     Eigen::Vector3d getEulerAngles(double x, double y, double t) const {
-        Eigen::Matrix3d R_WI = rotationMatrixAt(x, y, t);
+        auto st = getLagrangianState(x, y, t, 0.0);
+        const double px = x + st.displacement.x();
+        const double py = y + st.displacement.y();
 
-        // Convert rotation matrix → ZYX Euler (yaw→pitch→roll)
-        double roll, pitch, yaw;
-        pitch = std::atan2(-R_WI(2,0), std::sqrt(R_WI(0,0)*R_WI(0,0) + R_WI(1,0)*R_WI(1,0)));
-        roll  = std::atan2(R_WI(2,1), R_WI(2,2));
-        yaw   = std::atan2(R_WI(1,0), R_WI(0,0));
+        const auto slopes = getSurfaceSlopes(px, py, t);
+
+        const double sx = slopes.x();
+        const double sy = slopes.y();
+
+        const double pitch = std::atan(sx);
+        const double roll  = std::atan2(-sy, std::sqrt(1.0 + sx * sx));
+        const double yaw   = 0.0;
 
         return Eigen::Vector3d(
             roll  * 180.0 / M_PI,
@@ -807,10 +836,9 @@ static void generateWaveJonswapCSV(const std::string& filename,
     // Reference Euler from full orientation
     Eigen::Vector3d euler = waveModel->getEulerAngles(0.0, 0.0, t);
 
-    // zero yaw: project orientation into roll/pitch only
-    euler_deg(0, i) = euler.x(); // roll
-    euler_deg(1, i) = euler.y(); // pitch
-    euler_deg(2, i) = 0.0;       // yaw forced to 0
+    euler_deg(0, i) = euler.x();
+    euler_deg(1, i) = euler.y();
+    euler_deg(2, i) = euler.z();
   }
 
   std::ofstream file(filename);
