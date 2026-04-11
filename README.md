@@ -138,3 +138,4 @@ g++ -O3 -I./src -I/usr/include/eigen3 your_file.cpp -o your_program
 ## License
 
 This project is distributed under the terms of the `LICENSE` file in the repository root.
+
