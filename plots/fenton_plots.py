@@ -1,3 +1,5 @@
+from plot_sampling import get_decimation_step
+
 import matplotlib.pyplot as plt
 import pandas as pd
 import matplotlib as mpl
@@ -20,6 +22,16 @@ plt.rcParams.update({
     ])
 })
 
+SAMPLE_RATE_HZ = 200
+DECIMATION_STEP = get_decimation_step(base_rate_hz=SAMPLE_RATE_HZ)
+
+
+def decimate_plot_data(df):
+    """Decimate high-rate time-series data before plotting."""
+    if DECIMATION_STEP <= 1:
+        return df
+    return df.iloc[::DECIMATION_STEP].reset_index(drop=True)
+
 def plot_fenton_wave():
     data = pd.read_csv("wave_data.csv")
 
@@ -36,7 +48,7 @@ def plot_fenton_wave():
 
 def plot_wave_kinematics():
     try:
-        data = pd.read_csv("wave_tracker_data.csv")
+        data = decimate_plot_data(pd.read_csv("wave_tracker_data.csv"))
     except FileNotFoundError:
         print("File 'wave_tracker_data.csv' not found.")
         return
@@ -74,7 +86,7 @@ def plot_wave_kinematics():
 
 def plot_wave_profile_path():
     try:
-        data = pd.read_csv("wave_tracker_data.csv")
+        data = decimate_plot_data(pd.read_csv("wave_tracker_data.csv"))
     except FileNotFoundError:
         print("File 'wave_tracker_data.csv' not found.")
         return
