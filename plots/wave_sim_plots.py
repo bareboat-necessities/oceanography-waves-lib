@@ -4,6 +4,8 @@ import matplotlib.pyplot as plt
 import matplotlib as mpl
 import os
 
+from plot_sampling import get_decimation_step
+
 # === Matplotlib PGF/LaTeX config ===
 mpl.use("pgf")
 plt.rcParams.update({
@@ -78,6 +80,15 @@ z_only_components = {
 SAMPLE_RATE = 200
 MAX_TIME = 60.0
 MAX_RECORDS = int(SAMPLE_RATE * MAX_TIME)
+DECIMATION_STEP = get_decimation_step(base_rate_hz=SAMPLE_RATE)
+
+
+def load_plot_data(csv_file):
+    """Load bounded simulation data and decimate for plotting."""
+    data = pd.read_csv(csv_file).head(MAX_RECORDS)
+    if DECIMATION_STEP > 1:
+        data = data.iloc[::DECIMATION_STEP].reset_index(drop=True)
+    return data
 
 
 def find_file(wave_type, height):
@@ -110,7 +121,7 @@ def plot_wave_type(wave_type):
             csv_file = find_file(wave_type, h)
             if not csv_file:
                 continue
-            data = pd.read_csv(csv_file).head(MAX_RECORDS)
+            data = load_plot_data(csv_file)
             time = data["time"]
 
             for ax, (comp_label, cols) in zip(axes, comps.items()):
@@ -144,7 +155,7 @@ def plot_wave_type(wave_type):
             csv_file = find_file(wave_type, h)
             if not csv_file:
                 continue
-            data = pd.read_csv(csv_file).head(MAX_RECORDS)
+            data = load_plot_data(csv_file)
             time = data["time"]
 
             for i, comp in enumerate(['acc_bx', 'acc_by', 'acc_bz']):
@@ -170,7 +181,7 @@ def plot_wave_type(wave_type):
             csv_file = find_file(wave_type, h)
             if not csv_file:
                 continue
-            data = pd.read_csv(csv_file).head(MAX_RECORDS)
+            data = load_plot_data(csv_file)
             time = data["time"]
 
             for i, comp in enumerate(['gyro_x', 'gyro_y', 'gyro_z']):
@@ -187,9 +198,9 @@ def plot_wave_type(wave_type):
     fig.savefig(f"{wave_type}_imu_gyro.svg", bbox_inches="tight")
     plt.close(fig)
 
-    # --- Chart 4: Euler angles (yaw removed) ---
+    # --- Chart 4: Euler angles ---
     if wave_type in ["jonswap", "pmstokes"]:
-        euler_comps = ['roll_deg', 'pitch_deg']  # skip yaw
+        euler_comps = ['roll_deg', 'pitch_deg', 'yaw_deg']
     else:
         euler_comps = []
 
@@ -202,7 +213,7 @@ def plot_wave_type(wave_type):
                 csv_file = find_file(wave_type, h)
                 if not csv_file:
                     continue
-                data = pd.read_csv(csv_file).head(MAX_RECORDS)
+                data = load_plot_data(csv_file)
                 time = data["time"]
 
                 for i, comp in enumerate(euler_comps):
