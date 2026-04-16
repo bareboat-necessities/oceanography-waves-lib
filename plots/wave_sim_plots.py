@@ -2,7 +2,6 @@
 import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib as mpl
-import numpy as np
 import os
 
 from plot_sampling import get_decimation_step
@@ -102,13 +101,6 @@ def find_file(wave_type, height):
 def label_for(col, h):
     """Return pretty mathtext label for component + height."""
     return f"H={h} {latex_labels.get(col, col)}"
-
-
-def unwrap_euler_series_deg(series):
-    """Unwrap a degree-angle series to remove ±180° chart discontinuities."""
-    values_deg = series.to_numpy(dtype=float)
-    values_rad = np.deg2rad(values_deg)
-    return np.rad2deg(np.unwrap(values_rad))
 
 
 def plot_wave_type(wave_type):
@@ -226,8 +218,7 @@ def plot_wave_type(wave_type):
 
                 for i, comp in enumerate(euler_comps):
                     comp_color = height_colors[group][i % len(height_colors[group])]
-                    values = unwrap_euler_series_deg(data[comp])
-                    axes[i].plot(time, values, label=label_for(comp, h),
+                    axes[i].plot(time, data[comp], label=label_for(comp, h),
                                  color=comp_color, alpha=1.0, linewidth=1.2)
                     axes[i].set_ylabel(latex_labels.get(comp, comp))
                     axes[i].grid(True)

@@ -424,14 +424,23 @@ class EIGEN_ALIGN_MAX Jonswap3dStokesWaves {
         const double px = x + st.displacement.x();
         const double py = y + st.displacement.y();
 
-        const Eigen::Matrix3d C_wb = orientationFromSlopes(getSurfaceSlopes(px, py, t));
-        const Eigen::Matrix3d C_bw = C_wb.transpose();
-        const Eigen::Vector3d euler = C_bw.eulerAngles(2, 1, 0); // yaw, pitch, roll
+        const Eigen::Vector2d slopes = getSurfaceSlopes(px, py, t);
+        const double sx = slopes.x();
+        const double sy = slopes.y();
+
+        // World-frame yaw is defined as zero.
+        // With z_b aligned to the surface normal n ~ (-sx, -sy, 1),
+        // the corresponding roll/pitch (ZYX convention) are:
+        //   pitch = atan(-sx)
+        //   roll  = atan2(sy, sqrt(1 + sx^2))
+        const double pitch = std::atan(-sx);
+        const double roll  = std::atan2(sy, std::sqrt(1.0 + sx * sx));
+        const double yaw   = 0.0;
 
         return Eigen::Vector3d(
-            euler.z() * 180.0 / M_PI,
-            euler.y() * 180.0 / M_PI,
-            euler.x() * 180.0 / M_PI
+            roll  * 180.0 / M_PI,
+            pitch * 180.0 / M_PI,
+            yaw   * 180.0 / M_PI
         );
     }
 
