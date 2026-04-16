@@ -229,6 +229,19 @@ public:
         return Eigen::Vector2d(slope_x, slope_y);
     }
 
+// Tilt-only, yaw-fixed world -> body orientation from SURFACE slopes
+Eigen::Matrix3d rotationMatrixAt(double x, double y, double t) const {
+    // Surface Lagrangian buoy displacement
+    auto st = computeWaveState(x, y, 0.0, t, WaveFrame::Lagrangian);
+    const double px = x + st.displacement.x();
+    const double py = y + st.displacement.y();
+
+    // Local surface slopes at advected surface position
+    const auto slopes = getSurfaceSlopes(px, py, t);
+
+    return orientationFromSlopes(slopes);
+}
+
     // IMU readings at (x,y,t,z), consistent with ORDER Stokes slopes
     // Lagrangian mode with Stokes drift:
     //   - Uses Lagrangian particle kinematics (includes U_s drift in velocity).
@@ -240,32 +253,23 @@ IMUReadingsBody getIMUReadings(double x, double y, double t,
                                double z = 0.0, double dt = 1e-3) const {
     IMUReadingsBody imu;
 
-    auto state = computeWaveState(x, y, z, t, WaveFrame::Lagrangian);
+    // Translational kinematics at requested sensor depth
+    const auto state = computeWaveState(x, y, z, t, WaveFrame::Lagrangian);
 
-    const double px = x + state.displacement.x();
-    const double py = y + state.displacement.y();
-
-    const auto slopes = getSurfaceSlopes(px, py, t);
-    const Eigen::Matrix3d C_wb = orientationFromSlopes(slopes);
+    // Orientation always comes from the SURFACE buoy attitude,
+    // matching the corrected Jonswap version exactly.
+    const Eigen::Matrix3d C_wb = rotationMatrixAt(x, y, t);
 
     const Eigen::Vector3d g_world(0.0, 0.0, -g_);
     imu.accel_body  = C_wb * (state.acceleration - g_world);
     imu.accel_debug = C_wb * (-g_world);
 
-    auto st_prev = computeWaveState(x, y, z, t - 0.5 * dt, WaveFrame::Lagrangian);
-    auto st_next = computeWaveState(x, y, z, t + 0.5 * dt, WaveFrame::Lagrangian);
+    const Eigen::Matrix3d C_prev = rotationMatrixAt(x, y, t - 0.5 * dt);
+    const Eigen::Matrix3d C_next = rotationMatrixAt(x, y, t + 0.5 * dt);
+    const Eigen::Matrix3d Cdot   = (C_next - C_prev) / dt;
 
-    const double px_prev = x + st_prev.displacement.x();
-    const double py_prev = y + st_prev.displacement.y();
-    const double px_next = x + st_next.displacement.x();
-    const double py_next = y + st_next.displacement.y();
-
-    const Eigen::Matrix3d C_prev =
-        orientationFromSlopes(getSurfaceSlopes(px_prev, py_prev, t - 0.5 * dt));
-    const Eigen::Matrix3d C_next =
-        orientationFromSlopes(getSurfaceSlopes(px_next, py_next, t + 0.5 * dt));
-
-    const Eigen::Matrix3d Cdot = (C_next - C_prev) / dt;
+    // For C_wb (world -> body):
+    //   [ω_b]x = -Cdot * C_wb^T
     Eigen::Matrix3d Omega = -Cdot * C_wb.transpose();
     Omega = 0.5 * (Omega - Omega.transpose());
 
@@ -276,34 +280,39 @@ IMUReadingsBody getIMUReadings(double x, double y, double t,
     return imu;
 }
 
-    // Build local wave IMU orientation from slopes
-    Eigen::Matrix3d orientationFromSlopes(const Eigen::Vector2d &slopes) const {
-        const double sx = slopes.x();
-        const double sy = slopes.y();
+// Build local wave IMU orientation from slopes.
+// TRUE tilt-only, yaw-fixed frame:
+//   - body z aligns with the surface normal
+//   - yaw is defined to be zero in the world frame
+//   - roll/pitch exactly match getEulerAngles()
+Eigen::Matrix3d orientationFromSlopes(const Eigen::Vector2d &slopes) const {
+    const double sx = slopes.x();
+    const double sy = slopes.y();
 
-        // Surface normal in world frame.
-        Eigen::Vector3d z_b_world(-sx, -sy, 1.0);
-        z_b_world.normalize();
+    // Tilt-only ZYX convention with yaw = 0:
+    //   pitch = atan(-sx)
+    //   roll  = atan2(sy, sqrt(1 + sx^2))
+    const double pitch = std::atan(-sx);
+    const double roll  = std::atan2(sy, std::sqrt(1.0 + sx * sx));
 
-        // Enforce yaw in WORLD frame by anchoring body-x to world-x projection.
-        const Eigen::Vector3d x_ref_world(1.0, 0.0, 0.0);
-        Eigen::Vector3d x_b_world = x_ref_world - z_b_world * z_b_world.dot(x_ref_world);
-        if (x_b_world.squaredNorm() < 1e-12) {
-            const Eigen::Vector3d y_ref_world(0.0, 1.0, 0.0);
-            x_b_world = y_ref_world - z_b_world * z_b_world.dot(y_ref_world);
-        }
-        x_b_world.normalize();
+    const double cp = std::cos(pitch);
+    const double sp = std::sin(pitch);
+    const double cr = std::cos(roll);
+    const double sr = std::sin(roll);
 
-        Eigen::Vector3d y_b_world = z_b_world.cross(x_b_world);
-        y_b_world.normalize();
+    // body -> world with yaw = 0:
+    //   C_bw = Ry(pitch) * Rx(roll)
+    //
+    // Return world -> body:
+    //   C_wb = C_bw^T
+    Eigen::Matrix3d C_wb;
+    C_wb <<
+        cp,         0.0,    -sp,
+        sp * sr,    cr,      cp * sr,
+        sp * cr,   -sr,      cp * cr;
 
-        Eigen::Matrix3d C_bw; // body -> world
-        C_bw.col(0) = x_b_world;
-        C_bw.col(1) = y_b_world;
-        C_bw.col(2) = z_b_world;
-
-        return C_bw.transpose(); // world -> body
-    }
+    return C_wb;
+}
 
     // Return Euler angles of the world→body rotation in nautical/Z-up convention (deg) from surface slopes
     Eigen::Vector3d getEulerAngles(double x, double y, double t) const {
