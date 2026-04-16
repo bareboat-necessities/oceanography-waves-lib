@@ -392,46 +392,31 @@ class EIGEN_ALIGN_MAX Jonswap3dStokesWaves {
 
     // build local wave IMU orientation from slopes
     Eigen::Matrix3d orientationFromSlopes(const Eigen::Vector2d &slopes) const {
-      // Surface: z = eta(x,y)
-      // slopes.x() = d eta / dx
-      // slopes.y() = d eta / dy
-      //
-      // We want a tilt-only frame with yaw fixed to zero.
-      // Using world->body convention:
-      //
-      //   C_wb = Rx(roll) * Ry(pitch)
-      //
-      // with roll/pitch chosen so that body Z aligns with the surface normal:
-      //
-      //   n_world ~ [ -sx, -sy, 1 ]
-      //
-      // This gives:
-      //   pitch = atan(sx)
-      //   roll  = atan2(-sy, sqrt(1 + sx^2))
-      //
-      // Result:
-      //   - body Z follows the wave normal
-      //   - yaw is fixed (no arbitrary twist)
-      //   - C_wb remains world->body
-
       const double sx = slopes.x();
       const double sy = slopes.y();
 
-      const double pitch = std::atan(sx);
-      const double roll  = std::atan2(-sy, std::sqrt(1.0 + sx * sx));
+      // Surface normal in world frame.
+      Eigen::Vector3d z_b_world(-sx, -sy, 1.0);
+      z_b_world.normalize();
 
-      const double sr = std::sin(roll);
-      const double cr = std::cos(roll);
-      const double sp = std::sin(pitch);
-      const double cp = std::cos(pitch);
+      // Enforce yaw in WORLD frame by anchoring body-x to world-x projection.
+      const Eigen::Vector3d x_ref_world(1.0, 0.0, 0.0);
+      Eigen::Vector3d x_b_world = x_ref_world - z_b_world * z_b_world.dot(x_ref_world);
+      if (x_b_world.squaredNorm() < 1e-12) {
+        const Eigen::Vector3d y_ref_world(0.0, 1.0, 0.0);
+        x_b_world = y_ref_world - z_b_world * z_b_world.dot(y_ref_world);
+      }
+      x_b_world.normalize();
 
-      Eigen::Matrix3d C_wb;
-      C_wb <<
-          cp,        0.0,   sp,
-          sr * sp,   cr,   -sr * cp,
-         -cr * sp,   sr,    cr * cp;
+      Eigen::Vector3d y_b_world = z_b_world.cross(x_b_world);
+      y_b_world.normalize();
 
-      return C_wb;
+      Eigen::Matrix3d C_bw; // body -> world
+      C_bw.col(0) = x_b_world;
+      C_bw.col(1) = y_b_world;
+      C_bw.col(2) = z_b_world;
+
+      return C_bw.transpose(); // world -> body
     }
 
     Eigen::Vector3d getEulerAngles(double x, double y, double t) const {
@@ -439,19 +424,14 @@ class EIGEN_ALIGN_MAX Jonswap3dStokesWaves {
         const double px = x + st.displacement.x();
         const double py = y + st.displacement.y();
 
-        const auto slopes = getSurfaceSlopes(px, py, t);
-
-        const double sx = slopes.x();
-        const double sy = slopes.y();
-
-        const double pitch = std::atan(sx);
-        const double roll  = std::atan2(-sy, std::sqrt(1.0 + sx * sx));
-        const double yaw   = 0.0;
+        const Eigen::Matrix3d C_wb = orientationFromSlopes(getSurfaceSlopes(px, py, t));
+        const Eigen::Matrix3d C_bw = C_wb.transpose();
+        const Eigen::Vector3d euler = C_bw.eulerAngles(2, 1, 0); // yaw, pitch, roll
 
         return Eigen::Vector3d(
-            roll  * 180.0 / M_PI,
-            pitch * 180.0 / M_PI,
-            yaw   * 180.0 / M_PI
+            euler.z() * 180.0 / M_PI,
+            euler.y() * 180.0 / M_PI,
+            euler.x() * 180.0 / M_PI
         );
     }
 
