@@ -145,6 +145,7 @@ void test_jonswap_spectrum_and_state() {
   const auto state_a = wave_a.getLagrangianState(1.0, -0.5, 3.25, -0.75);
   const auto state_b = wave_b.getLagrangianState(1.0, -0.5, 3.25, -0.75);
   const auto slopes = wave_a.getSurfaceSlopes(0.5, 1.5, 2.0);
+  const auto euler = wave_a.getEulerAngles(0.0, 0.0, 2.0);
 
   for (int i = 0; i < 3; ++i) {
     require_finite(state_a.displacement(i), "JONSWAP displacement should be finite");
@@ -159,6 +160,11 @@ void test_jonswap_spectrum_and_state() {
   }
   require_finite(slopes.x(), "JONSWAP surface slope x should be finite");
   require_finite(slopes.y(), "JONSWAP surface slope y should be finite");
+  require_finite(euler.x(), "JONSWAP roll should be finite");
+  require_finite(euler.y(), "JONSWAP pitch should be finite");
+  require_finite(euler.z(), "JONSWAP yaw should be finite");
+  require_near(euler.z(), 0.0, 1e-12, 1e-12,
+               "JONSWAP yaw should be zero in world frame");
 }
 
 void test_pm_spectrum_and_errors() {
@@ -173,6 +179,7 @@ void test_pm_spectrum_and_errors() {
   PMStokesN3dWaves<64, 3> wave(hs, tp, distribution, 0.02, 0.8, 9.81, 99u);
   const auto state = wave.getEulerianState(1.0, -2.0, -0.5, 4.0);
   const auto slopes = wave.getSurfaceSlopes(1.0, -2.0, 4.0);
+  const auto euler = wave.getEulerAngles(0.0, 0.0, 4.0);
 
   for (int i = 0; i < 3; ++i) {
     require_finite(state.displacement(i), "PM displacement should be finite");
@@ -181,6 +188,11 @@ void test_pm_spectrum_and_errors() {
   }
   require_finite(slopes.x(), "PM surface slope x should be finite");
   require_finite(slopes.y(), "PM surface slope y should be finite");
+  require_finite(euler.x(), "PM roll should be finite");
+  require_finite(euler.y(), "PM pitch should be finite");
+  require_finite(euler.z(), "PM yaw should be finite");
+  require_near(euler.z(), 0.0, 1e-12, 1e-12,
+               "PM yaw should be zero in world frame");
 
   bool threw = false;
   try {
