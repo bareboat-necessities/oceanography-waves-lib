@@ -452,13 +452,16 @@ Eigen::Matrix3d orientationFromSlopes(const Eigen::Vector2d &slopes) const {
 IMUReadings getIMUReadings(double x, double y, double t,
                            double z = 0.0, double dt = 1e-3) const {
     IMUReadings imu;
+    (void)z; // surface sensor: translational kinematics also taken at z = 0
 
-    const auto state = getLagrangianState(x, y, t, z);
+    // Surface translational kinematics
+    const auto state = getLagrangianState(x, y, t, 0.0);
 
+    // Surface buoy attitude
     const Eigen::Matrix3d C_wb = rotationMatrixAt(x, y, t);
 
     const Eigen::Vector3d g_world(0.0, 0.0, -g_);
-    imu.accel_body = C_wb * (state.acceleration - g_world);
+    imu.accel_body  = C_wb * (state.acceleration - g_world);
     imu.accel_debug = C_wb * (-g_world);
 
     const Eigen::Matrix3d C_prev = rotationMatrixAt(x, y, t - 0.5 * dt);
