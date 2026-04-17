@@ -242,7 +242,7 @@ Eigen::Matrix3d rotationMatrixAt(double x, double y, double t) const {
     return orientationFromSlopes(slopes);
 }
 
-    // IMU readings at (x,y,t,z), consistent with ORDER Stokes slopes
+    // IMU readings at (x,y,t,z=0), consistent with ORDER Stokes slopes
     // Lagrangian mode with Stokes drift:
     //   - Uses Lagrangian particle kinematics (includes U_s drift in velocity).
     //   - Acceleration is oscillatory + gravity; mean drift is steady ⇒ no direct accel term.
@@ -252,12 +252,12 @@ Eigen::Matrix3d rotationMatrixAt(double x, double y, double t) const {
 IMUReadingsBody getIMUReadings(double x, double y, double t,
                                double z = 0.0, double dt = 1e-3) const {
     IMUReadingsBody imu;
+    (void)z; // surface sensor: translational kinematics also taken at z = 0
 
-    // Translational kinematics at requested sensor depth
-    const auto state = computeWaveState(x, y, z, t, WaveFrame::Lagrangian);
+    // Surface translational kinematics
+    const auto state = computeWaveState(x, y, 0.0, t, WaveFrame::Lagrangian);
 
-    // Orientation always comes from the SURFACE buoy attitude,
-    // matching the corrected Jonswap version exactly.
+    // Surface buoy attitude
     const Eigen::Matrix3d C_wb = rotationMatrixAt(x, y, t);
 
     const Eigen::Vector3d g_world(0.0, 0.0, -g_);
@@ -268,8 +268,6 @@ IMUReadingsBody getIMUReadings(double x, double y, double t,
     const Eigen::Matrix3d C_next = rotationMatrixAt(x, y, t + 0.5 * dt);
     const Eigen::Matrix3d Cdot   = (C_next - C_prev) / dt;
 
-    // For C_wb (world -> body):
-    //   [ω_b]x = -Cdot * C_wb^T
     Eigen::Matrix3d Omega = -Cdot * C_wb.transpose();
     Omega = 0.5 * (Omega - Omega.transpose());
 
