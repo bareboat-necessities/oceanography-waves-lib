@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.16)
 
 project(oceanography_waves_lib
-  VERSION 1.2.1
+  VERSION 1.2.2
   DESCRIPTION "Header-first C++ library for ocean surface wave simulation"
   LANGUAGES CXX)
 

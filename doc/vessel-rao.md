@@ -158,11 +158,11 @@ runs. Without `--output-dir`, vessel files go in `vessel-rao-28ft/` under the
 current directory, preventing default output from overwriting particle files.
 
 CI uploads the separate replacement ZIP on PRs. After all tests, chart jobs and PDF builds pass on main, the complete versioned
-release includes both data archives, SVG/PGF chart archives and PDFs. Release
-1.2.1 is tagged `v1.2.1`; the RAO chart document is
+release includes all five data archives, SVG/PGF chart archives and PDFs. Release
+1.2.2 is tagged `v1.2.2`; the RAO chart document is
 `wave_sim_charts_vessel_rao_28ft.pdf`. The packaging step
 rejects missing/extra wave files, schema changes, or changed incident spectra.
-`python3 tests/vessel_archive.py` checks all 20 cases, exact time-column parity,
+`python3 tests/vessel_archive.py` checks all 80 vessel cases, exact time-column parity,
 finite data, IMU frame recovery, archive names and auxiliary-file preservation.
 
 ## Scope
