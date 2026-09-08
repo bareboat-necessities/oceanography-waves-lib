@@ -18,6 +18,18 @@ jobs:
       - name: Build and run tests
         run: make -C tests clean check
 
+      - name: Audit all eight reference acceleration records
+        run: |
+          make -C tests reference_acceleration_audit
+          tests/reference_acceleration_audit > reference-acceleration-audit.csv
+
+      - name: Upload reference acceleration audit
+        uses: actions/upload-artifact@v4
+        with:
+          name: reference-acceleration-audit
+          path: reference-acceleration-audit.csv
+          if-no-files-found: error
+
       - name: Build and run tests with sanitizers
         run: |
           make -C tests clean check \
@@ -26,6 +38,9 @@ jobs:
 
       - name: Compile data-sim
         run: make -C data-sim
+
+      - name: Check vessel replacement archive compatibility
+        run: python3 tests/vessel_archive.py
 
   gen-sim-data:
     name: generate simulation data
@@ -52,16 +67,25 @@ jobs:
           
       - name: Package simulation data
         run: |
-          cd data-sim
-          zip sim-data-files.zip ./*.csv
-          cd ..
+          python3 data-sim/package_sim_data.py data-sim
+
+      - name: Audit generated vessel records
+        run: python3 data-sim/audit_vessel_data.py data-sim/vessel-rao-28ft > vessel-rao-reference-audit.csv
+
+      - name: Upload vessel RAO audit
+        uses: actions/upload-artifact@v4
+        with:
+          name: vessel-rao-reference-audit
+          path: vessel-rao-reference-audit.csv
+          if-no-files-found: error
 
       - name: Upload simulation data to vTest release
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         uses: svenstaro/upload-release-action@v2
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           file: data-sim/sim-data-files.zip
-          tag: ${{ github.ref == 'refs/heads/main' && 'vTest' || github.ref }}
+          tag: vTest
           overwrite: true
 
       - name: Upload simulation data artifact
@@ -69,6 +93,23 @@ jobs:
         with:
           name: sim-data-files
           path: data-sim/*.csv
+          if-no-files-found: error
+
+      - name: Upload vessel RAO data to vTest release
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: svenstaro/upload-release-action@v2
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: data-sim/sim-data-files-vessel-rao-28ft.zip
+          tag: vTest
+          overwrite: true
+
+      - name: Upload vessel RAO replacement archive
+        uses: actions/upload-artifact@v4
+        with:
+          name: sim-data-files-vessel-rao-28ft
+          path: data-sim/sim-data-files-vessel-rao-28ft.zip
+          compression-level: 0
           if-no-files-found: error
 
   gen-plots:
@@ -158,10 +199,11 @@ jobs:
           if-no-files-found: error
 
       - name: Upload PDF
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         uses: svenstaro/upload-release-action@v2
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           file: "**/*.pdf"
-          tag: ${{ github.ref == 'refs/heads/main' && 'vTest' || github.ref }}
+          tag: vTest
           overwrite: true
           file_glob: true

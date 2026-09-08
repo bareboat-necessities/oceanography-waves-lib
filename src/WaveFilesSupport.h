@@ -246,6 +246,7 @@ public:
         if (append) ofs.open(filename, std::ios::app);
         else ofs.open(filename, std::ios::trunc);
         if (!ofs.is_open()) throw std::runtime_error("Failed to open " + filename);
+        ofs.exceptions(std::ios::failbit | std::ios::badbit);
     }
 
     void write_header() {
@@ -335,6 +336,7 @@ class WaveSpectrumCSVWriter {
 public:
     explicit WaveSpectrumCSVWriter(const std::string &filename) : ofs(filename) {
         if (!ofs.is_open()) throw std::runtime_error("Failed to open " + filename);
+        ofs.exceptions(std::ios::failbit | std::ios::badbit);
         ofs << "f_Hz,theta_deg,E\n";
     }
     void write(double f, double theta_deg, double E) {

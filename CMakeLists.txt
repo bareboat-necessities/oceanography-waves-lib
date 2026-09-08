@@ -34,6 +34,8 @@ if(OWLIB_BUILD_TESTS)
   add_executable(owlib_tests tests/tests.cpp)
   target_link_libraries(owlib_tests PRIVATE oceanography_waves)
   add_test(NAME owlib_tests COMMAND owlib_tests)
+  add_executable(reference_acceleration_audit tests/reference_acceleration_audit.cpp)
+  target_link_libraries(reference_acceleration_audit PRIVATE oceanography_waves)
 endif()
 
 if(OWLIB_BUILD_DATA_SIM)

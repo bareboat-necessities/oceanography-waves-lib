@@ -39,3 +39,14 @@
 
 # debug information files
 *.dwo
+
+# Local build outputs
+/tests/tests
+/tests/tests-sanitize
+/tests/reference_acceleration_audit
+/data-sim/waves_sim
+/data-sim/vessel-rao-28ft/
+/data-sim/*.csv
+/data-sim/*.zip
+/build/
+__pycache__/

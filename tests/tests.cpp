@@ -18,6 +18,8 @@
 #include "FentonWaveVectorized.h"
 #include "Jonswap3dStokesWaves.h"
 #include "PiersonMoskowitzStokes3D_Waves.h"
+#include "VesselRao.h"
+#include "../data-sim/RegularWaveHarmonics.h"
 
 namespace {
 
@@ -213,10 +215,20 @@ void test_pm_spectrum_and_errors() {
   require(threw, "PM Stokes waves should reject a null directional distribution");
 }
 
+#include "jonswap_physics.h"
+#include "vessel_rao.h"
+
 }  // namespace
 
 int main() {
   const std::vector<std::pair<std::string, std::function<void()>>> tests = {
+      {"vessel RAO limits, symmetry and phase", test_vessel_transfer},
+      {"vessel rigid-body kinematics and IMU", test_vessel_kinematics},
+      {"incident wave adapters", test_incident_wave_adapters},
+      {"monochromatic Lagrangian limit", test_monochromatic_particle},
+      {"collinear and degenerate second-order pairs", test_collinear_and_degenerate_pairs},
+      {"second-order free-surface and particle equations", test_second_order_boundary_conditions},
+      {"JONSWAP derivative and IMU consistency", test_jonswap_derivatives_and_imu},
       {"directional distribution normalization", test_directional_distribution_normalization},
       {"Fenton wave invariants", test_fenton_wave_invariants},
       {"JONSWAP spectrum and state", test_jonswap_spectrum_and_state},
