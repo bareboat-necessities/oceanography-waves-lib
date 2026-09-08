@@ -159,7 +159,7 @@ current directory, preventing default output from overwriting particle files.
 
 CI uploads the separate replacement ZIP on PRs. After all tests, chart jobs and PDF builds pass on main, the complete versioned
 release includes all five data archives, SVG/PGF chart archives and PDFs. Release
-1.2.2 is tagged `v1.2.2`; the RAO chart document is
+1.2.3 is tagged `v1.2.3`; the RAO chart document is
 `wave_sim_charts_vessel_rao_28ft.pdf`. The packaging step
 rejects missing/extra wave files, schema changes, or changed incident spectra.
 `python3 tests/vessel_archive.py` checks all 80 vessel cases, exact time-column parity,

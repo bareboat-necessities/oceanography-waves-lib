@@ -9,15 +9,15 @@ The project includes:
 
 ## Results
 
-[Release 1.2.2](https://github.com/bareboat-necessities/oceanography-waves-lib/releases/tag/v1.2.2) includes all five simulation datasets, SVG/PGF chart archives, and all PDF documentation.
+[Release 1.2.3](https://github.com/bareboat-necessities/oceanography-waves-lib/releases/tag/v1.2.3) includes all five simulation datasets, SVG/PGF chart archives, and all PDF documentation.
 
-- [Vessel RAO chart PDF](https://github.com/bareboat-necessities/oceanography-waves-lib/releases/download/v1.2.2/wave_sim_charts_vessel_rao_28ft.pdf)
-- [Vessel RAO SVG/PGF charts](https://github.com/bareboat-necessities/oceanography-waves-lib/releases/download/v1.2.2/plot-files-vessel-rao-28ft.zip)
-- [Vessel RAO simulation CSVs](https://github.com/bareboat-necessities/oceanography-waves-lib/releases/download/v1.2.2/sim-data-files-vessel-rao-28ft.zip)
+- [Vessel RAO chart PDF](https://github.com/bareboat-necessities/oceanography-waves-lib/releases/download/v1.2.3/wave_sim_charts_vessel_rao_28ft.pdf)
+- [Vessel RAO SVG/PGF charts](https://github.com/bareboat-necessities/oceanography-waves-lib/releases/download/v1.2.3/plot-files-vessel-rao-28ft.zip)
+- [Vessel RAO simulation CSVs](https://github.com/bareboat-necessities/oceanography-waves-lib/releases/download/v1.2.3/sim-data-files-vessel-rao-28ft.zip)
 
-- [34 ft RAO simulation CSVs](https://github.com/bareboat-necessities/oceanography-waves-lib/releases/download/v1.2.2/sim-data-files-vessel-rao-34ft.zip)
-- [42 ft RAO simulation CSVs](https://github.com/bareboat-necessities/oceanography-waves-lib/releases/download/v1.2.2/sim-data-files-vessel-rao-42ft.zip)
-- [50 ft RAO simulation CSVs](https://github.com/bareboat-necessities/oceanography-waves-lib/releases/download/v1.2.2/sim-data-files-vessel-rao-50ft.zip)
+- [34 ft RAO simulation CSVs](https://github.com/bareboat-necessities/oceanography-waves-lib/releases/download/v1.2.3/sim-data-files-vessel-rao-34ft.zip)
+- [42 ft RAO simulation CSVs](https://github.com/bareboat-necessities/oceanography-waves-lib/releases/download/v1.2.3/sim-data-files-vessel-rao-42ft.zip)
+- [50 ft RAO simulation CSVs](https://github.com/bareboat-necessities/oceanography-waves-lib/releases/download/v1.2.3/sim-data-files-vessel-rao-50ft.zip)
 
 The vessel charts cover all five wave families and all four incident heights, including H=4 m. Surface and vessel charts are labeled and packaged separately. A versioned release is published only after tests, full simulation audits, all five plotting jobs and all PDF builds succeed.
 
@@ -195,7 +195,7 @@ The standard generation and packaging workflow produces separate
 `sim-data-files-vessel-rao-34ft.zip`, `sim-data-files-vessel-rao-42ft.zip`, and
 `sim-data-files-vessel-rao-50ft.zip` with the same CSV filenames and columns as
 the 28 ft ZIP. Each size also has a chart ZIP, a PDF, and a full-record audit
-in CI artifacts and release 1.2.2. Existing release 1.2.1 is
+in CI artifacts and release 1.2.3. Existing release 1.2.1 is
 immutable and contains only the original surface and 28 ft datasets.
 
 See [vessel preset parameters and assumptions](doc/vessel-rao.md#additional-34-ft-42-ft-and-50-ft-presets).
