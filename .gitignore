@@ -50,3 +50,5 @@
 /data-sim/*.zip
 /build/
 __pycache__/
+
+/plots/vessel_rao_response

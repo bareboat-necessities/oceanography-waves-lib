@@ -23,6 +23,17 @@ def check(directory, dataset):
             label = f'{feet} ft sailboat RAO' if vessel else 'Surface / particle model'
             if label not in text or any(f'H={h} m' not in text for h in ('0.27', '1.5', '4', '8.5')):
                 raise ValueError(f'Wrong dataset label or missing height in {base}')
+    if vessel:
+        for kind in ('gain', 'phase', 'heading'):
+            base = directory / f'{prefix}response_{kind}'
+            for extension in ('.svg', '.pgf', '.png'):
+                path = base.with_suffix(extension)
+                if not path.is_file() or not path.stat().st_size:
+                    raise ValueError(f'Missing RAO chart: {path}')
+            text = ' '.join(ET.parse(base.with_suffix('.svg')).getroot().itertext())
+            for label in (f'{feet} ft sailboat RAO', 'Surge', 'Sway', 'Heave', 'Roll', 'Pitch', 'Yaw'):
+                if label not in text:
+                    raise ValueError(f'Missing RAO label {label}: {base}')
     print(f'PASS: {dataset}: {len(expected)//2} complete charts with all four heights')
 
 
