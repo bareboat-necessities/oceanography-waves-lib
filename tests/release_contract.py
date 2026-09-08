@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 import importlib.util
 import os
+import json
+import subprocess
 from pathlib import Path
 import tempfile
 import unittest
@@ -15,6 +17,16 @@ ENV = {'GITHUB_REPOSITORY': 'owner/repo', 'GITHUB_SHA': SHA, 'GITHUB_REF': 'refs
 
 
 class ReleaseTests(unittest.TestCase):
+    def test_draft_lookup_falls_back_to_authenticated_collection(self):
+        draft = {'tag_name': 'v1.2.1', 'draft': True, 'assets': []}
+        responses = [
+            subprocess.CompletedProcess([], 1, '', 'HTTP 404'),
+            subprocess.CompletedProcess([], 0, json.dumps([draft]), ''),
+        ]
+        with patch.object(release.subprocess, 'run', side_effect=responses) as run:
+            self.assertEqual(release.lookup('repos/owner/repo/releases/tags/v1.2.1'), draft)
+            self.assertEqual(run.call_args.args[0][-1], 'repos/owner/repo/releases?per_page=100&page=1')
+
     def test_missing_assets_block_before_publication(self):
         with tempfile.TemporaryDirectory() as temp:
             with self.assertRaises(ValueError):

@@ -1,0 +1,70 @@
+name: complete validated 1.2.1 release
+on:
+  push:
+    branches: [main]
+    paths: [.github/workflows/recover-release.yml]
+  workflow_dispatch:
+permissions:
+  contents: write
+  actions: read
+concurrency:
+  group: recover-release-1.2.1
+  cancel-in-progress: false
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+      SOURCE_SHA: e442150682f560384be427df4cc7815956a091c5
+      SOURCE_RUN: '34183448046'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Verify source build and unchanged release contents
+        run: |
+          python3 tests/release_contract.py
+          git merge-base --is-ancestor "$SOURCE_SHA" HEAD
+          git diff --exit-code "$SOURCE_SHA" HEAD -- . ':!ci/release.py' ':!tests/release_contract.py' ':!.github/workflows/recover-release.yml'
+          python3 - <<'PY'
+          import json, os, subprocess
+          repo = os.environ['GITHUB_REPOSITORY']
+          run_id = os.environ['SOURCE_RUN']
+          def get(path):
+              return json.loads(subprocess.check_output(['gh', 'api', f'repos/{repo}/{path}']))
+          run = get(f'actions/runs/{run_id}')
+          assert run['head_sha'] == os.environ['SOURCE_SHA']
+          assert run['head_branch'] == 'main' and run['event'] == 'push'
+          required = {'tests and quality gates', 'generate simulation data', 'generate surface plots', 'generate vessel-rao plots', 'build_latex'}
+          jobs = get(f'actions/runs/{run_id}/jobs')['jobs']
+          assert required <= {j['name'] for j in jobs if j['conclusion'] == 'success'}
+          PY
+      - uses: actions/download-artifact@v4
+        with:
+          github-token: ${{ github.token }}
+          run-id: ${{ env.SOURCE_RUN }}
+          name: simulation-archives
+          path: release-assets
+      - uses: actions/download-artifact@v4
+        with:
+          github-token: ${{ github.token }}
+          run-id: ${{ env.SOURCE_RUN }}
+          pattern: chart-archive-*
+          merge-multiple: true
+          path: release-assets
+      - uses: actions/download-artifact@v4
+        with:
+          github-token: ${{ github.token }}
+          run-id: ${{ env.SOURCE_RUN }}
+          name: latex-pdfs
+          path: release-assets
+      - uses: actions/download-artifact@v4
+        with:
+          github-token: ${{ github.token }}
+          run-id: ${{ env.SOURCE_RUN }}
+          pattern: '*audit'
+          merge-multiple: true
+          path: release-assets
+      - name: Verify and publish the original tested commit
+        run: GITHUB_SHA="$SOURCE_SHA" python3 ci/release.py release-assets --publish

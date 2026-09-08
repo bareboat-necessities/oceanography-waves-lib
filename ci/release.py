@@ -22,7 +22,7 @@ def prepare(directory):
     version = (ROOT / 'VERSION').read_text().strip()
     if not re.fullmatch(r'\d+\.\d+\.\d+', version):
         raise ValueError('VERSION must contain a stable semantic version')
-    if f'VERSION {version}' not in (ROOT / 'CMakeLists.txt').read_text():
+    if not re.search(rf'VERSION\s+{re.escape(version)}(?=\s|\))', (ROOT / 'CMakeLists.txt').read_text()):
         raise ValueError('CMake project version and VERSION differ')
     paths = [directory / name for name in ASSETS]
     for path in paths:
@@ -46,6 +46,21 @@ def lookup(endpoint):
     if result.returncode == 0:
         return json.loads(result.stdout)
     if 'HTTP 404' in result.stderr:
+        # GitHub's tag endpoint excludes unpublished drafts. Find them in the
+        # authenticated release collection, including older paginated drafts.
+        if '/releases/tags/' in endpoint:
+            base, tag = endpoint.split('/releases/tags/', 1)
+            page = 1
+            while True:
+                releases = lookup(f'{base}/releases?per_page=100&page={page}')
+                if releases is None:
+                    raise RuntimeError('Cannot list releases to resolve a draft')
+                for candidate in releases:
+                    if candidate['tag_name'] == tag:
+                        return candidate
+                if len(releases) < 100:
+                    break
+                page += 1
         return None
     raise RuntimeError(result.stderr)
 
