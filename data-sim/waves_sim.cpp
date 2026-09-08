@@ -151,10 +151,7 @@ static Wave_Data_Sample sample_jonswap(double t, Jonswap3dStokesWaves<N> &model)
     out.imu.roll_deg  = static_cast<float>(euler.x());
     out.imu.pitch_deg = static_cast<float>(euler.y());
     out.imu.yaw_deg   = static_cast<float>(euler.z());
-    auto lagrangian_state = model.getLagrangianState(0.0, 0.0, t, 0.0);
-    const double px = lagrangian_state.displacement.x();
-    const double py = lagrangian_state.displacement.y();
-    const Eigen::Vector2d slopes = model.getSurfaceSlopes(px, py, t);
+    const Eigen::Vector2d slopes = model.getLagrangianSurfaceSlopes(0.0, 0.0, t);
     fill_imu_reference_quaternion(out.imu, model.orientationFromSlopes(slopes));
 
     return out;

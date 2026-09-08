@@ -39,3 +39,9 @@
 
 # debug information files
 *.dwo
+
+# Local build outputs
+/tests/tests
+/tests/reference_acceleration_audit
+/data-sim/waves_sim
+/build/

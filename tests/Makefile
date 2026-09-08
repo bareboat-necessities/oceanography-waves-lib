@@ -16,8 +16,11 @@ check: $(TARGET)
 $(TARGET): tests.o
 	$(CXX) $(CXXFLAGS) -o $@ $^ $(LDFLAGS)
 
-tests.o: tests.cpp
+reference_acceleration_audit: reference_acceleration_audit.cpp $(wildcard ../src/*.h)
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -o $@ $< $(LDFLAGS)
+
+tests.o: tests.cpp jonswap_physics.h $(wildcard ../src/*.h)
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c -o $@ $<
 
 clean:
-	rm -f *.o $(TARGET) $(TARGET).exe *.csv
+	rm -f *.o $(TARGET) $(TARGET).exe reference_acceleration_audit *.csv

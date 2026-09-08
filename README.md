@@ -108,6 +108,28 @@ These headers expose utilities for:
 - Spectral wave generation and diagnostics
 - Sea state and derived wave metrics
 
+## JONSWAP particle model
+
+JONSWAP uses second-order deep-water potential-flow interactions, including
+sum and difference frequencies and particle advection. Its position, velocity,
+and acceleration describe one consistent particle trajectory. See
+[the derivation, physical scope, and migration notes](doc/jonswap-second-order.md).
+
+`getSurfaceSlopes` is Eulerian. Use `getLagrangianSurfaceSlopes` for a
+particle-following IMU attitude. Horizontal position now includes Stokes drift;
+consumers comparing wave excursions should explicitly account for that drift.
+The independent seeded phases and corrected kinematics change generated records.
+This is a wave-particle model; vessel response and breaking are outside its scope.
+
+Run the eight 20-minute reference acceleration diagnostics with:
+
+```bash
+make -C tests reference_acceleration_audit
+tests/reference_acceleration_audit > reference-acceleration-audit.csv
+```
+
+The report is a full-record numerical diagnostic, not a universal physical bound.
+
 ## Minimal usage example
 
 ```cpp
