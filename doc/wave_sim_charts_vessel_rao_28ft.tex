@@ -1,4 +1,5 @@
 \documentclass[11pt,letterpaper]{article}
+\usepackage{fontspec}
 \usepackage{amsmath,amssymb,fullpage,graphicx,pgf,float,hyperref}
 \providecommand{\mathdefault}[1]{#1}
 \title{28-Foot Fin-Keel Sailboat: Vessel RAO Simulation Charts}
@@ -18,7 +19,7 @@ and an IMU at the center of gravity. Waterline length is 7.0 m, beam 2.9 m,
 and draft 1.5 m. Natural periods for heave, pitch, and roll are 2.4, 2.8,
 and 3.5 seconds, with damping ratios 0.45, 0.35, and 0.22.
 
-Every plot includes all four incident-height cases: 0.27, 1.5, 4.0, and 8.5 m.
+Every motion plot includes all four incident-height cases: 0.27, 1.5, 4.0, and 8.5 m.
 The first 60 seconds of each 20-minute, nominal 200 Hz record are plotted at
 20 Hz. World acceleration excludes gravity; accelerometer specific force
 includes gravity. Rotations and gyro readings describe the vessel rigid body.
@@ -30,6 +31,18 @@ The complete dataset is \texttt{sim-data-files-vessel-rao-28ft.zip}; its interna
 filenames and columns match the surface dataset. See \texttt{doc/vessel-rao.md}
 for the response equations, coordinate conventions, and regular-wave details.
 \clearpage
+\section{Applied displacement RAOs}
+These curves sample the production C++ transfer function with deep-water
+$k=\omega^2/g$, from 0.005 to 1 Hz. Translation gains are m/m and rotation
+gains are rad/m of incident elevation amplitude. Wave propagation is relative
+to the bow: 0 degrees following, 90 beam, and 180 head waves. These are
+transfer functions, not motion spectra; regular bound harmonics may use a
+different wavenumber. Positive phase is a lag under $\exp(-i\omega t)$.
+Phase is wrapped to $[-180,180]$ degrees and omitted for zero response.
+Yaw is constrained to zero. The heading maps show gain, not phase.
+\VesselChart{response_gain}{Applied RAO magnitudes at five relative wave headings.}
+\VesselChart{response_phase}{Applied RAO phases; phase is undefined where response is zero.}
+\VesselChart{response_heading}{Applied RAO gain versus frequency and relative propagation direction.}
 \section{Gerstner incident waves}
 \VesselChart{gerstner_worldframe}{World-frame CG displacement, velocity and acceleration.}
 \VesselChart{gerstner_imu_acc}{Body-frame accelerometer specific force.}

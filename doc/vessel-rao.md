@@ -259,3 +259,46 @@ Geometric similarity does not capture hull-specific beam/length ratios,
 ballast, loading, roll damping, sailing speed, or nonlinear slamming. In
 particular, the 8.5 m incident seas remain extrapolative stress tests. These
 presets must not be interpreted as validated heavy-weather predictions.
+
+## Applied RAO charts
+
+### 28 ft preview
+
+![28 ft applied RAO gains](rao-previews/28ft-gain.svg)
+![28 ft applied RAO phase](rao-previews/28ft-phase.svg)
+![28 ft applied RAO heading response](rao-previews/28ft-heading.svg)
+
+These checked-in previews can be regenerated with the command below. The CI
+archives and PDFs regenerate charts for all four hulls from the current model.
+
+
+Each vessel chart archive and PDF now includes `response_gain`,
+`response_phase`, and `response_heading` charts, with the same vessel prefix
+as its motion charts. Six panels show surge, sway, heave, roll, pitch and
+constrained yaw. Gain and phase curves compare relative propagation angles
+0, 45, 90, 135 and 180 degrees; gain maps sample headings every 5 degrees.
+The frequency grid is 0.005–1 Hz in 0.005 Hz steps.
+
+These plots call **`VesselRao::transfer` directly through a C++ exporter**;
+Python does not reimplement the model. They show the deep-water slice
+`k = omega^2/g`, not a sea-state-weighted spectrum or the actual wavenumber
+of every regular bound harmonic. Gains are per metre of incident elevation
+amplitude (translations m/m, rotations rad/m). Positive phase denotes lag
+under `exp(-i omega t)`; phase is wrapped to ±180 degrees, with gaps at wraps
+and at negligible/zero response. Yaw gain is zero and its phase is undefined.
+The headings are propagation directions: 0 degrees following, 90 beam,
+180 head waves. The analytical-surrogate limitations above still apply.
+
+Generate these charts without running the time-domain simulations:
+
+```sh
+make -C plots vessel_rao_response
+plots/vessel_rao_response > /tmp/vessel_rao_response.csv
+for feet in 28 34 42 50; do
+  python3 plots/vessel_rao_plots.py /tmp/vessel_rao_response.csv \
+    --vessel-length-ft "$feet" --output-dir plots
+done
+```
+
+Dependencies: C++17, Eigen, Python with NumPy, pandas and Matplotlib; XeLaTeX
+for PGF export. Use `--formats png svg` if LaTeX is unavailable.

@@ -131,7 +131,7 @@ jobs:
       - name: Install plotting dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y texlive-xetex texlive-latex-recommended texlive-fonts-recommended texlive-latex-extra texlive-fonts-extra dvipng python3-pip
+          sudo apt-get install -y g++ make libeigen3-dev texlive-xetex texlive-latex-recommended texlive-fonts-recommended texlive-latex-extra texlive-fonts-extra dvipng python3-pip
           python3 -m pip install matplotlib numpy pandas scipy
       - uses: actions/download-artifact@v4
         with:
@@ -151,7 +151,11 @@ jobs:
         env:
           VESSEL_FEET: ${{ matrix.feet }}
           PLOT_PREFIX: ${{ matrix.prefix }}
-        run: python3 plots/wave_sim_plots.py --input-dir plots --output-dir plots --vessel-rao --vessel-length-ft "$VESSEL_FEET" --prefix "$PLOT_PREFIX"
+        run: |
+          python3 plots/wave_sim_plots.py --input-dir plots --output-dir plots --vessel-rao --vessel-length-ft "$VESSEL_FEET" --prefix "$PLOT_PREFIX"
+          make -C plots vessel_rao_response
+          plots/vessel_rao_response > plots/vessel_rao_response.csv
+          python3 plots/vessel_rao_plots.py plots/vessel_rao_response.csv --output-dir plots --vessel-length-ft "$VESSEL_FEET" --prefix "$PLOT_PREFIX"
       - name: Check and package charts
         env:
           CHART_ARCHIVE: ${{ matrix.archive }}
