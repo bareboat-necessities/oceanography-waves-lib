@@ -162,7 +162,7 @@ class EIGEN_ALIGN_MAX JonswapSpectrum {
 };
 
 struct IMUReadings {
-  Eigen::Vector3d accel_body;  // linear acceleration in IMU frame
+  Eigen::Vector3d accel_body;  // specific force in IMU frame (acceleration minus gravity)
   Eigen::Vector3d gyro_body;   // angular velocity in IMU frame (rad/s)
   Eigen::Vector3d accel_debug; // linear acceleration for debugging AHRS filters
 };

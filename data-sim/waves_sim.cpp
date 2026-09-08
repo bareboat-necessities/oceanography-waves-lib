@@ -145,7 +145,7 @@ static Wave_Data_Sample sample_jonswap(double t, Jonswap3dStokesWaves<N> &model)
     auto imu = model.getIMUReadings(0.0, 0.0, t, 0.0, DELTA_T);
     fill_imu_sample_from_readings(out.imu, imu);
 
-    // Reference Euler at advected buoy (rotationMatrixAt already advects)
+    // Particle attitude uses the same second-order slope pullback as the IMU.
     Eigen::Vector3d euler = model.getEulerAngles(0.0, 0.0, t);
 
     out.imu.roll_deg  = static_cast<float>(euler.x());

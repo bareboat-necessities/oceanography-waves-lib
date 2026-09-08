@@ -45,22 +45,25 @@ public:
         std::vector<Pair> pairs;
         for (size_t i = 0; i < modes_.size(); ++i)
             for (size_t j = i; j < modes_.size(); ++j)
-                for (int sign : {1, -1})
+                for (int sign : {1, -1}) {
                     pairs.push_back(makePair(modes_[i], modes_[j], sign, i == j ? 0.5 : 1.0));
+                    pair_i_.push_back(i); pair_j_.push_back(j); pair_sign_.push_back(sign);
+                }
         const auto n = static_cast<Eigen::Index>(pairs.size());
         omega_.resize(n); k_.resize(n); ksum_.resize(n); kx_.resize(n); ky_.resize(n);
-        phase_.resize(n); eta_.resize(n); potential_.resize(n);
+        eta_.resize(n); potential_.resize(n);
         hx_p_.resize(n); hy_p_.resize(n); hx_a_.resize(n); hy_a_.resize(n);
         z_p_.resize(n); z_a_.resize(n);
         for (Eigen::Index i = 0; i < n; ++i) {
             const auto& p = pairs[static_cast<size_t>(i)];
             omega_(i)=p.omega; k_(i)=p.k; ksum_(i)=p.ksum;
-            kx_(i)=p.q.x(); ky_(i)=p.q.y(); phase_(i)=p.phase;
+            kx_(i)=p.q.x(); ky_(i)=p.q.y();
             eta_(i)=p.eta; potential_(i)=p.potential;
             hx_p_(i)=p.hp.x(); hy_p_(i)=p.hp.y();
             hx_a_(i)=p.ha.x(); hy_a_(i)=p.ha.y();
             z_p_(i)=p.zp; z_a_(i)=p.za;
         }
+        hx_surface_=hx_p_+hx_a_; hy_surface_=hy_p_+hy_a_; z_surface_=z_p_+z_a_;
     }
 
     // x,y,z are particle labels, not instantaneous Eulerian coordinates.
@@ -81,18 +84,12 @@ public:
             out.acceleration.z() -= a*m.omega*m.omega*c;
         }
         updateTrig(x,y,t);
-        const Eigen::ArrayXd ep=(k_*z).exp(), ea=(ksum_*z).exp();
-        const Eigen::ArrayXd hx=hx_p_*ep+hx_a_*ea, hy=hy_p_*ep+hy_a_*ea;
-        const Eigen::ArrayXd vz=z_p_*ep+z_a_*ea;
-        out.displacement.x() += (hx*integral_cos_).sum();
-        out.displacement.y() += (hy*integral_cos_).sum();
-        out.displacement.z() += (vz*cos_).sum();
-        out.velocity.x() += (hx*cos_).sum();
-        out.velocity.y() += (hy*cos_).sum();
-        out.velocity.z() += (vz*omega_*sin_).sum();
-        out.acceleration.x() += (hx*omega_*sin_).sum();
-        out.acceleration.y() += (hy*omega_*sin_).sum();
-        out.acceleration.z() -= (vz*omega_.square()*cos_).sum();
+        if (z == 0) {
+            accumulatePairs(out,hx_surface_,hy_surface_,z_surface_);
+        } else {
+            const Eigen::ArrayXd ep=(k_*z).exp(), ea=(ksum_*z).exp();
+            accumulatePairs(out,hx_p_*ep+hx_a_*ea,hy_p_*ep+hy_a_*ea,z_p_*ep+z_a_*ea);
+        }
         return out;
     }
 
@@ -146,15 +143,19 @@ public:
 private:
     struct Mode { double a, omega, k; Eigen::Vector2d direction; double phase; };
     struct Pair {
-        double omega, k, ksum, phase, eta=0, potential=0, zp=0, za=0;
+        double omega, k, ksum, eta=0, potential=0, zp=0, za=0;
         Eigen::Vector2d q, hp=Eigen::Vector2d::Zero(), ha=Eigen::Vector2d::Zero();
     };
     double g_;
     std::vector<Mode> modes_;
-    Eigen::ArrayXd omega_, k_, ksum_, kx_, ky_, phase_, eta_, potential_;
+    Eigen::ArrayXd omega_, k_, ksum_, kx_, ky_, eta_, potential_;
     Eigen::ArrayXd hx_p_, hy_p_, hx_a_, hy_a_, z_p_, z_a_;
+    Eigen::ArrayXd hx_surface_, hy_surface_, z_surface_;
+    std::vector<size_t> pair_i_,pair_j_;
+    std::vector<int> pair_sign_;
     mutable double cache_x_=std::numeric_limits<double>::quiet_NaN(), cache_y_=0, cache_t_=0;
-    mutable Eigen::ArrayXd sin_, cos_, integral_cos_;
+    mutable Eigen::ArrayXd sin_, cos_, integral_cos_, sin0_, cos0_;
+    mutable std::vector<double> mode_sin_,mode_cos_;
 
     static void checkCoordinates(double x,double y,double t,double z) {
         if (!(std::isfinite(x)&&std::isfinite(y)&&std::isfinite(t)&&std::isfinite(z)))
@@ -168,7 +169,6 @@ private:
         const double signedKDifference=(wi-wj)*(wi+wj)/g_;
         p.q=(sign == 1 ? i.k+j.k : signedKDifference)*i.direction +
             sign*j.k*(j.direction-i.direction);
-        p.phase=i.phase+sign*j.phase;
         const double oneMinusCos=0.5*(i.direction-j.direction).squaredNorm();
         const double onePlusCos=0.5*(i.direction+j.direction).squaredNorm();
         p.k=std::hypot(signedKDifference,
@@ -199,21 +199,58 @@ private:
         return p;
     }
 
+    void accumulatePairs(State& out,const Eigen::ArrayXd& hx,
+                         const Eigen::ArrayXd& hy,const Eigen::ArrayXd& vz) const {
+        out.displacement.x() += (hx*integral_cos_).sum();
+        out.displacement.y() += (hy*integral_cos_).sum();
+        out.displacement.z() += (vz*cos_).sum();
+        out.velocity.x() += (hx*cos_).sum();
+        out.velocity.y() += (hy*cos_).sum();
+        out.velocity.z() += (vz*omega_*sin_).sum();
+        out.acceleration.x() += (hx*omega_*sin_).sum();
+        out.acceleration.y() += (hy*omega_*sin_).sum();
+        out.acceleration.z() -= (vz*omega_.square()*cos_).sum();
+    }
+
     void updateTrig(double x, double y, double t) const {
         if (x == cache_x_ && y == cache_y_ && t == cache_t_) return;
-        const Eigen::ArrayXd initial=kx_*x+ky_*y+phase_;
-        const Eigen::ArrayXd arg=initial-omega_*t;
-        sin_=arg.sin(); cos_=arg.cos();
+        const bool labelsChanged=x != cache_x_ || y != cache_y_;
+        mode_sin_.resize(modes_.size()); mode_cos_.resize(modes_.size());
+        const Eigen::Vector2d xy(x,y);
+        sin_.resize(omega_.size()); cos_.resize(omega_.size());
         integral_cos_.resize(omega_.size());
-        const Eigen::ArrayXd sin0=initial.sin();
-        for (Eigen::Index i=0; i<omega_.size(); ++i) {
-            const double half=0.5*omega_(i)*t;
+        if (labelsChanged) {
+            for(size_t i=0;i<modes_.size();++i) {
+                const auto& m=modes_[i];
+                const double arg=m.k*m.direction.dot(xy)+m.phase;
+                mode_sin_[i]=std::sin(arg); mode_cos_[i]=std::cos(arg);
+            }
+            sin0_.resize(omega_.size()); cos0_.resize(omega_.size());
+            for(Eigen::Index p=0;p<omega_.size();++p) {
+                const auto i=pair_i_[p],j=pair_j_[p]; const int sign=pair_sign_[p];
+                sin0_(p)=mode_sin_[i]*mode_cos_[j]+sign*mode_cos_[i]*mode_sin_[j];
+                cos0_(p)=mode_cos_[i]*mode_cos_[j]-sign*mode_sin_[i]*mode_sin_[j];
+            }
+        }
+        // Angle-addition identities avoid O(N^2) transcendental calls. They
+        // preserve the complete pair set; no frequency or amplitude is dropped.
+        for(size_t i=0;i<modes_.size();++i) {
+            const auto& m=modes_[i];
+            const double arg=m.k*m.direction.dot(xy)-m.omega*t+m.phase;
+            mode_sin_[i]=std::sin(arg); mode_cos_[i]=std::cos(arg);
+        }
+        for(Eigen::Index p=0;p<omega_.size();++p) {
+            const auto i=pair_i_[p],j=pair_j_[p]; const int sign=pair_sign_[p];
+            sin_(p)=mode_sin_[i]*mode_cos_[j]+sign*mode_cos_[i]*mode_sin_[j];
+            cos_(p)=mode_cos_[i]*mode_cos_[j]-sign*mode_sin_[i]*mode_sin_[j];
+            const double half=0.5*omega_(p)*t;
             if (std::abs(half)<1e-4) {
                 const double h2=half*half;
                 const double sinc=1-h2/6+h2*h2/120;
-                integral_cos_(i)=t*sinc*std::cos(initial(i)-half);
+                const double cmid=cos0_(p)*(1-h2/2+h2*h2/24)+sin0_(p)*half*sinc;
+                integral_cos_(p)=t*sinc*cmid;
             } else {
-                integral_cos_(i)=(sin0(i)-sin_(i))/omega_(i);
+                integral_cos_(p)=(sin0_(p)-sin_(p))/omega_(p);
             }
         }
         cache_x_=x; cache_y_=y; cache_t_=t;

@@ -144,6 +144,10 @@ wavevectors use the analytic diagonal:
 Z=Ak_i e^{2k_i z},\qquad E=P=0.
 \]
 
+Pair trigonometry uses angle-addition identities from the first-order phases,
+reducing transcendental work from quadratic to linear in the number of input
+components. This changes no interaction coefficients or retained pairs.
+
 This includes coherent cross terms when a component is split into identical
 components. Equal frequencies at different directions retain their static
 spatial interference terms instead of being discarded.

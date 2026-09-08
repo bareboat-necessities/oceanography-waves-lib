@@ -1,0 +1,32 @@
+{
+  "baseline_commit": "c5ddd8ddba6e062bb131d92efcd672dfa189455a",
+  "samples_per_record": 240000,
+  "time_step": "double(1.0f / 200.0f)",
+  "time_expression": "sample_index * time_step",
+  "duration_seconds": 1200,
+  "gravity_mps2": 9.80665,
+  "seed": 42,
+  "band_hz": [
+    0.02,
+    0.8
+  ],
+  "compiler": "g++ (Ubuntu 13.3.0-6ubuntu2~24.04) 13.3.0",
+  "source_sha256": {
+    "src/Jonswap3dStokesWaves.h": "d69bf1edcd753422451de37c71e7345f25aea6d5e2dbda6439e9472adf2feb57",
+    "src/DeepWaterSecondOrder.h": "acf654c35128cf6cfde9b09281250b5e238c48a23fa9ec4d1151904ef0004b0c",
+    "src/DirectionalSpread.h": "b790eb266c2e70f9a8ef19ce57d40fd6f4232ecd349fac6bdef536d940b714fd",
+    "src/PiersonMoskowitzStokes3D_Waves.h": "3e8c981cff40b5fd5945c78cf459aa6b85660a47cb56cd6c65ca4b71d3b52e8e",
+    "tests/reference_acceleration_audit.cpp": "9c8771fe411195151406dd9b0d31bfc396359d623322cc659290dc5c9b7d90d9"
+  },
+  "scope": "Full-record diagnostic; this library has no Live state. PM is unchanged. No g-clamp gate.",
+  "commands": {
+    "baseline": "g++ -std=c++20 -O3 -DOWLIB_LEGACY_PHASES -I<baseline>/src -I/usr/include/eigen3 tests/reference_acceleration_audit.cpp -o /tmp/baseline && /tmp/baseline",
+    "corrected": "make -C tests check reference_acceleration_audit && tests/reference_acceleration_audit",
+    "same_phases": "g++ -std=c++20 -O2 -DOWLIB_REPLAY_LEGACY_PHASES -I./src -I/usr/include/eigen3 tests/reference_acceleration_audit.cpp -o /tmp/replay && /tmp/replay"
+  },
+  "evidence_sha256": {
+    "reference-acceleration-baseline.csv": "d129befb417c8469ac412ba640a5c80d0f3db2153b33c122083a50b6d137cd29",
+    "reference-acceleration-corrected.csv": "48ca2af7fa69407fa967bf1cc7a74a4861efbe2b50c3828acfdef3f0ea8fb61b",
+    "reference-acceleration-same-phases.csv": "75a4351e2a73f17b852fb4bdc820139b429aa7e8f74938f2bd51979dbbfcf5b4"
+  }
+}
