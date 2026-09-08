@@ -9,9 +9,13 @@ The project includes:
 
 ## Results
 
-Results and generated PDF documentation from main development branch are located at:
+[Release 1.2.1](https://github.com/bareboat-necessities/oceanography-waves-lib/releases/tag/v1.2.1) includes both simulation datasets, SVG/PGF chart archives, and all PDF documentation.
 
-https://github.com/bareboat-necessities/oceanography-waves-lib/releases/tag/vTest
+- [Vessel RAO chart PDF](https://github.com/bareboat-necessities/oceanography-waves-lib/releases/download/v1.2.1/wave_sim_charts_vessel_rao_28ft.pdf)
+- [Vessel RAO SVG/PGF charts](https://github.com/bareboat-necessities/oceanography-waves-lib/releases/download/v1.2.1/plot-files-vessel-rao-28ft.zip)
+- [Vessel RAO simulation CSVs](https://github.com/bareboat-necessities/oceanography-waves-lib/releases/download/v1.2.1/sim-data-files-vessel-rao-28ft.zip)
+
+The vessel charts cover all five wave families and all four incident heights, including H=4 m. Surface and vessel charts are labeled and packaged separately. A versioned release is published only after tests, full simulation audits, both plotting jobs and all PDF builds succeed.
 
 <p align="center">
   <img src="./img/samples/spectrum_pmstokes_medium_3d.svg?raw=true" style="max-width: 50%;">
