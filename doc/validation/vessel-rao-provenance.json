@@ -1,0 +1,25 @@
+{
+  "base_commit": "36d65db2860e94ce2585276348d49304c824c157",
+  "preset": "VesselRao::Parameters defaults",
+  "compiler": "g++ (Ubuntu 13.3.0-6ubuntu2~24.04) 13.3.0",
+  "flags": "-O3 -std=c++20 -march=native -funroll-loops -fno-finite-math-only",
+  "simulation": "waves_sim --vessel-rao (full 20 minutes, 200 Hz, all four cases)",
+  "audit": "python3 data-sim/audit_vessel_data.py data-sim/vessel-rao-28ft",
+  "transport_note": "For local capture only, the generator streamed complete just-closed CSV bytes to a parent Python process before exit to work around native large-file handoff truncation. Wave calculations and CSV serialization were unchanged. Audit ran independently on the saved captured files.",
+  "source_sha256": {
+    "src/VesselRao.h": "eb2d2a7f735816b383285687835dc0ad9e3151d08099a31ade4b921ca1d395cc",
+    "src/WaveHarmonic.h": "6b2415ee26a07dcc3a7b1af1dec67d545f891b61bb7888ec420b5b2371d2088b",
+    "src/DeepWaterSecondOrder.h": "4568a87cbe013d8686f571d04a08a1f1804a4a89dfee31cf3e7aca3bd37be32d",
+    "src/Jonswap3dStokesWaves.h": "ebca9245fdf8992096fd32ad38c731a0258968f8e88787fe88e87f098861485a",
+    "src/PiersonMoskowitzStokes3D_Waves.h": "372e354c107071b11177edba30333092138ad0318713431f378b47df21437241",
+    "src/WaveFilesSupport.h": "58423bdc6a8b7abbcfcfdeabb0977cc72d165442651d52c09742d72ddc5e13f1",
+    "src/DirectionalSpread.h": "b790eb266c2e70f9a8ef19ce57d40fd6f4232ecd349fac6bdef536d940b714fd",
+    "src/FentonWaveVectorized.h": "14ab3e014dd0cfa6b4e8a08e0d6ccbfef692e701b2818ec6090b679cd02fb901",
+    "src/CnoidalWave.h": "b72e925bc07a77cd6c9ebe3a30e05e2fa00e3cd0499c7287e8f6b108b0059ba6",
+    "src/TrochoidalWave.h": "6b8bf69b7fcb536e9bd47ab3189ed37fa9133ef30919bbef905a3c8236bfe5e6",
+    "data-sim/waves_sim.cpp": "443f390487eed9c29f3a9e99d8434066f4a1ad9e036a8d8c7f8aa9d83fdfd80d",
+    "data-sim/RegularWaveHarmonics.h": "f2c6fb3cca0bdd864158952afaa66534def716512c4037581363cee20100144d",
+    "data-sim/audit_vessel_data.py": "79f480d2060b7ae3a7b87d4d714d73bd082c67c7f2d8422506f44c6c18d7d212"
+  },
+  "audit_sha256": "64660629a479e7a8b4e2f6757b799682a5f45253f615642caf0b5e6b0a7282ef"
+}

@@ -1,4 +1,5 @@
 #pragma once
+#include "WaveHarmonic.h"
 
 /*
   - Stochastic linear combination of Stokes-N harmonics (deep water) driven
@@ -189,6 +190,16 @@ public:
         renormalizeForStokesElevationVariance();
         computePerComponentStokesDriftEstimate();  // Lagrangian mean drift (2nd order)
         checkSteepness();
+    }
+
+    // Actual first-order incident realization after the model's amplitude normalization.
+    // The cosine convention below is equivalent to this model's a*sin(theta).
+    std::vector<WaveHarmonic> incidentHarmonics() const {
+        std::vector<WaveHarmonic> out;
+        out.reserve(N_FREQ);
+        for (int j=0; j<N_FREQ; ++j)
+            out.push_back({A1_(j),omega_(j),k_(j),std::atan2(dir_y_(j),dir_x_(j)),phi_(j)-M_PI/2});
+        return out;
     }
 
     // Lagrangian particle at surface (x₀ = y₀ = 0)

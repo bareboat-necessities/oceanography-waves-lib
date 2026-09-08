@@ -11,6 +11,7 @@
 #include <limits>
 #include <stdexcept>
 #include <vector>
+#include "WaveHarmonic.h"
 
 // Second-order potential-flow solution and its Lagrangian particle map.
 // See doc/jonswap-second-order.md for the derivation, phase convention, and
@@ -64,6 +65,15 @@ public:
             z_p_(i)=p.zp; z_a_(i)=p.za;
         }
         hx_surface_=hx_p_+hx_a_; hy_surface_=hy_p_+hy_a_; z_surface_=z_p_+z_a_;
+    }
+
+    // Snapshot of the actual incident realization, without quadratic particle terms.
+    std::vector<WaveHarmonic> incidentHarmonics() const {
+        std::vector<WaveHarmonic> out;
+        out.reserve(modes_.size());
+        for (const auto& m : modes_)
+            out.push_back({m.a,m.omega,m.k,std::atan2(m.direction.y(),m.direction.x()),m.phase});
+        return out;
     }
 
     // x,y,z are particle labels, not instantaneous Eulerian coordinates.

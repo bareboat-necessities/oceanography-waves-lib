@@ -80,6 +80,21 @@ make
 
 This target is useful for generating wave field/spectrum CSV output for further analysis.
 
+An additional estimated **28-foot fin-keel sailboat RAO** simulation is available:
+
+```bash
+./waves_sim --vessel-rao
+```
+
+It writes vessel CG motion and consistent IMU/attitude references into
+`vessel-rao-28ft/`, using the original CSV filenames and columns. Running
+`bash gen_sim_data.sh` generates both datasets; `python3 package_sim_data.py`
+packages them as `sim-data-files.zip` and **`sim-data-files-vessel-rao-28ft.zip`**
+with identical member names. CI also includes the existing ancillary plotting
+CSVs and uploads the additional ZIP as its own artifact/release asset.
+See [vessel RAO parameters, equations and scope](doc/vessel-rao.md). The preset
+is an approximate stationary sailboat response, not measured hull data.
+
 ### 3) Build plotting helper (C++)
 
 ```bash
@@ -98,6 +113,7 @@ Core headers in `src/` include:
 - `FentonWaveVectorized.h`
 - `Jonswap3dStokesWaves.h`
 - `PiersonMoskowitzStokes3D_Waves.h`
+- `VesselRao.h`
 - `DirectionalSpread.h`
 - `SeaMetrics.h`
 - `WavesCategories.h`
@@ -160,5 +176,4 @@ g++ -O3 -I./src -I/usr/include/eigen3 your_file.cpp -o your_program
 ## License
 
 This project is distributed under the terms of the `LICENSE` file in the repository root.
-
 

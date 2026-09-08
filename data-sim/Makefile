@@ -24,7 +24,7 @@ all: $(TARGETS)
 waves_sim: waves_sim.o
 	$(CC) $(CXXFLAGS) -o $@ $^ $(LDFLAGS)
 
-%.o: %.cpp
+%.o: %.cpp $(wildcard ../src/*.h) $(wildcard *.h)
 	$(CC) $(CXXFLAGS) -c $< -o $@
 
 clean:

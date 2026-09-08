@@ -19,7 +19,7 @@ $(TARGET): tests.o
 reference_acceleration_audit: reference_acceleration_audit.cpp $(wildcard ../src/*.h)
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -o $@ $< $(LDFLAGS)
 
-tests.o: tests.cpp jonswap_physics.h $(wildcard ../src/*.h)
+tests.o: tests.cpp $(wildcard *.h) $(wildcard ../src/*.h) $(wildcard ../data-sim/*.h)
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c -o $@ $<
 
 clean:

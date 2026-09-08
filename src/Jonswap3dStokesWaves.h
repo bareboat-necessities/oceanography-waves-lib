@@ -352,6 +352,8 @@ IMUReadings getIMUReadings(double x, double y, double t,
       return spectrum_.df();
     }
 
+    std::vector<WaveHarmonic> incidentHarmonics() const { return model_.incidentHarmonics(); }
+
     double gamma() const {
       return spectrum_.gamma();
     }

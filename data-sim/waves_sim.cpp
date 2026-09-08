@@ -7,6 +7,7 @@
 */
 
 #include <iostream>
+#include <filesystem>
 #include <Eigen/Geometry>
 
 #define EIGEN_NON_ARDUINO
@@ -22,6 +23,8 @@
 #include "Jonswap3dStokesWaves.h"
 #include "PiersonMoskowitzStokes3D_Waves.h"
 #include "WaveFilesSupport.h"
+#include "VesselRao.h"
+#include "RegularWaveHarmonics.h"
 
 // Experiment Config
 static constexpr float SAMPLE_RATE_HZ  = 200.0f;
@@ -228,13 +231,65 @@ static Wave_Data_Sample sample_cnoidal(double t, CnoidalWave<float> &wave) {
     return out;
 }
 
+// Additional vessel response; wave and particle simulation remain separate.
+static void run_vessel_scenario(WaveType type, const WaveParameters& wp, double duration) {
+    std::vector<WaveHarmonic> harmonics;
+    if (type==WaveType::JONSWAP || type==WaveType::PMSTOKES) {
+        auto dist=std::make_shared<Cosine2sRandomizedDistribution>(
+            wp.direction*M_PI/180,10.0,GLOBAL_SEED);
+        if (type==WaveType::JONSWAP) {
+            Jonswap3dStokesWaves<128> wave(wp.height,wp.period,dist,0.02,0.8,3.3,g_std,GLOBAL_SEED);
+            harmonics=wave.incidentHarmonics();
+            export_spectrum(wp,type,wave);
+        } else {
+            PMStokesN3dWaves<128,3> wave(wp.height,wp.period,dist,0.02,0.8,g_std,GLOBAL_SEED);
+            harmonics=wave.incidentHarmonics();
+            export_spectrum(wp,type,wave);
+        }
+    } else {
+        harmonics=regularWaveHarmonics(type,wp);
+    }
+    const VesselRao vessel(harmonics);
+    const auto filename=WaveFileNaming::generate(FileKind::Data,type,wp);
+    WaveDataCSVWriter writer(filename);
+    writer.write_header();
+    const auto write_sample = [&](double t) {
+        const auto state=vessel.state(t);
+        Wave_Data_Sample sample{};
+        sample.time=t;
+        fill_wave_sample_from_state(sample.wave,state);
+        fill_imu_sample_from_readings(sample.imu,state);
+        sample.imu.roll_deg=static_cast<float>(state.euler.x()*180/M_PI);
+        sample.imu.pitch_deg=static_cast<float>(state.euler.y()*180/M_PI);
+        sample.imu.yaw_deg=static_cast<float>(state.euler.z()*180/M_PI);
+        fill_imu_reference_quaternion(sample.imu,state.world_to_body);
+        writer.write(sample);
+    };
+    if (type==WaveType::FENTON) {
+        // Preserve the existing tracker's float clock and skipped initial samples.
+        for (float t=0; t<=static_cast<float>(duration); t+=DELTA_T)
+            if (t>DELTA_T) write_sample(t);
+    } else {
+        const int steps=static_cast<int>(std::round(duration/DELTA_T));
+        double t=0;
+        for (int step=0; step<steps; ++step,t+=DELTA_T) write_sample(t);
+    }
+    writer.close();
+    std::cout << "Wrote vessel RAO " << filename << "\n";
+}
+
 // Scenario Runner
-static void run_one_scenario(WaveType waveType, const WaveParameters &wp) {
+static void run_one_scenario(WaveType waveType, const WaveParameters &wp,
+                             bool vessel_rao, double duration) {
     WaveParameters wp_copy = wp;
     if (waveType == WaveType::GERSTNER ||
         waveType == WaveType::FENTON   ||
         waveType == WaveType::CNOIDAL) {
         wp_copy.direction = 0.0f;
+    }
+    if (vessel_rao) {
+        run_vessel_scenario(waveType,wp_copy,duration);
+        return;
     }
     std::string filename = WaveFileNaming::generate(FileKind::Data, waveType, wp_copy);
 
@@ -242,7 +297,7 @@ static void run_one_scenario(WaveType waveType, const WaveParameters &wp) {
     writer.write_header();
 
     double sim_t = 0.0;
-    int total_steps = static_cast<int>(std::round(TEST_DURATION_S / DELTA_T));
+    int total_steps = static_cast<int>(std::round(duration / DELTA_T));
 
     if (waveType == WaveType::GERSTNER) {
         TrochoidalWave<float> trocho(wp.height / 2.0f, wp.period, wp.phase);
@@ -267,7 +322,7 @@ static void run_one_scenario(WaveType waveType, const WaveParameters &wp) {
         export_spectrum(wp, WaveType::JONSWAP, *jonswap_model);
     }
     else if (waveType == WaveType::FENTON) {
-        auto samples = sample_fenton<5>(wp, TEST_DURATION_S, DELTA_T);
+        auto samples = sample_fenton<5>(wp, duration, DELTA_T);
         for (auto &samp : samples) writer.write(samp);
         writer.close();
     }
@@ -296,11 +351,11 @@ static void run_one_scenario(WaveType waveType, const WaveParameters &wp) {
     std::cout << "Wrote " << filename << "\n";
 }
 
-static void run_all_wave_types(const WaveParameters &wp, int idx = -1) {
+static void run_all_wave_types(const WaveParameters &wp, int idx, bool vessel_rao, double duration) {
     for (WaveType wt : {WaveType::GERSTNER, WaveType::JONSWAP,
                         WaveType::FENTON, WaveType::PMSTOKES,
                         WaveType::CNOIDAL}) {
-        run_one_scenario(wt, wp);
+        run_one_scenario(wt, wp, vessel_rao, duration);
     }
     if (idx >= 0) {
         std::cout << "Wave index " << idx << " complete.\n";
@@ -308,24 +363,41 @@ static void run_all_wave_types(const WaveParameters &wp, int idx = -1) {
 }
 
 // Main
-int main(int argc, char** argv) {
-    if (argc > 2) {
-        std::cerr << "Usage: " << argv[0] << " [wave_index]\n";
-        return 1;
+int main(int argc, char** argv) try {
+    int index=-1;
+    bool vessel_rao=false;
+    double duration=TEST_DURATION_S;
+    std::filesystem::path output;
+    for (int i=1; i<argc; ++i) {
+        const std::string arg=argv[i];
+        if (arg=="--vessel-rao") vessel_rao=true;
+        else if (arg=="--output-dir" && i+1<argc) output=argv[++i];
+        else if (arg=="--duration" && i+1<argc) {
+            std::size_t used=0;
+            const std::string value=argv[++i];
+            duration=std::stod(value,&used);
+            if (used!=value.size() || !std::isfinite(duration) || duration<DELTA_T || duration>TEST_DURATION_S)
+                throw std::invalid_argument("duration must be between 0.005 and 1200 seconds");
+        } else if (arg.size()==1 && arg[0]>='0' && arg[0]<='3' && index==-1) {
+            index=arg[0]-'0';
+        } else {
+            throw std::invalid_argument("Usage: waves_sim [--vessel-rao] [--output-dir DIR] [--duration SECONDS] [wave_index 0..3]");
+        }
     }
-    if (argc == 2) {
-        int idx = std::stoi(argv[1]);
-        if (idx < 0 || idx >= static_cast<int>(waveParamsList.size())) {
-            std::cerr << "Invalid wave_index " << idx
-                      << " (must be 0.." << (waveParamsList.size() - 1) << ")\n";
-            return 1;
-        }
-        run_all_wave_types(waveParamsList[idx], idx);
+    if (output.empty() && vessel_rao) output="vessel-rao-28ft";
+    if (!output.empty()) {
+        std::filesystem::create_directories(output);
+        std::filesystem::current_path(output);
+    }
+    if (index>=0) {
+        run_all_wave_types(waveParamsList[index],index,vessel_rao,duration);
     } else {
-        for (size_t idx = 0; idx < waveParamsList.size(); ++idx) {
-            run_all_wave_types(waveParamsList[idx], static_cast<int>(idx));
-        }
+        for (size_t idx = 0; idx < waveParamsList.size(); ++idx)
+            run_all_wave_types(waveParamsList[idx],static_cast<int>(idx),vessel_rao,duration);
         std::cout << "All wave data generation complete.\n";
     }
     return 0;
+} catch (const std::exception& e) {
+    std::cerr << e.what() << '\n';
+    return 1;
 }
