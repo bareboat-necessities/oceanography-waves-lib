@@ -181,3 +181,17 @@ g++ -O3 -I./src -I/usr/include/eigen3 your_file.cpp -o your_program
 
 This project is distributed under the terms of the `LICENSE` file in the repository root.
 
+
+### Sailboat size variants
+
+The generator also supports **34 ft, 42 ft, and 50 ft** fin-keel RAO presets,
+using documented geometric/Froude scaling of the existing 28 ft surrogate.
+Run `./waves_sim --vessel-length-ft 34` (or `42`, `50`) from `data-sim`.
+The standard generation and packaging workflow produces separate
+`sim-data-files-vessel-rao-34ft.zip`, `sim-data-files-vessel-rao-42ft.zip`, and
+`sim-data-files-vessel-rao-50ft.zip` with the same CSV filenames and columns as
+the 28 ft ZIP. Each size also has a chart ZIP, a PDF, and a full-record audit
+in CI artifacts and the next versioned release. Existing release 1.2.1 is
+immutable and contains only the original surface and 28 ft datasets.
+
+See [vessel preset parameters and assumptions](doc/vessel-rao.md#additional-34-ft-42-ft-and-50-ft-presets).

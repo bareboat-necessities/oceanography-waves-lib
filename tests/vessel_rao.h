@@ -2,6 +2,21 @@
 void test_vessel_transfer() {
     const VesselRao vessel({});
     const auto p=vessel.parameters();
+    for (int feet : {28,34,42,50}) {
+        const double ratio=feet/28.0;
+        const VesselRao scaled({},VesselRao::sailboat(feet));
+        for (double omega : {0.1,0.8,2.0,5.0}) {
+            const auto base=vessel.transfer(omega,omega*omega/p.gravity,0.7);
+            const auto other=scaled.transfer(omega/std::sqrt(ratio),omega*omega/p.gravity/ratio,0.7);
+            for (int j=0;j<6;++j)
+                require(std::abs(other[j]*(j<3?1.0:ratio)-base[j])<1e-12,
+                        "Froude similarity preserves translation and scales rotation per wave amplitude");
+        }
+    }
+    bool invalid_size=false;
+    try { VesselRao::sailboat(35); } catch (const std::invalid_argument&) { invalid_size=true; }
+    require(invalid_size,"Unsupported vessel size rejected");
+
     const double pi=std::acos(-1.0);
     for (double beta : {0.0,pi/2,0.6,-0.6}) {
         const double w=1e-6, k=w*w/p.gravity;

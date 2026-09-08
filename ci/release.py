@@ -15,7 +15,12 @@ ASSETS = (
     'waves.pdf', 'wave_model_fenton.pdf', 'wave_model_gerstner.pdf',
     'wave_model_spectral.pdf', 'wave_sim_charts.pdf', 'wave_sim_charts_vessel_rao_28ft.pdf',
     'reference-acceleration-audit.csv', 'vessel-rao-reference-audit.csv',
-)
+) + tuple(name for feet in (34, 42, 50) for name in (
+    f'sim-data-files-vessel-rao-{feet}ft.zip',
+    f'plot-files-vessel-rao-{feet}ft.zip',
+    f'wave_sim_charts_vessel_rao_{feet}ft.pdf',
+    f'vessel-rao-{feet}ft-reference-audit.csv',
+))
 
 
 def prepare(directory):

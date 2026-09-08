@@ -1,0 +1,63 @@
+\documentclass[11pt,letterpaper]{article}
+\usepackage{amsmath,amssymb,fullpage,graphicx,pgf,float,hyperref}
+\providecommand{\mathdefault}[1]{#1}
+\title{42-Foot Fin-Keel Sailboat: Vessel RAO Simulation Charts}
+\author{Mikhail Grushinskiy}
+\date{Geometrically scaled RAO family}
+\newcommand{\VesselChart}[2]{
+  \begin{figure}[H]\centering
+  \resizebox{\textwidth}{!}{\input{vessel_rao_42ft_#1.pgf}}
+  \caption{#2}
+  \end{figure}\clearpage
+}
+\begin{document}
+\maketitle
+These charts show vessel motion, rather than surface-particle motion, for an
+estimated 42-foot fin-keel sailboat at zero forward speed with fixed heading
+and an IMU at the center of gravity. Waterline length is 10.500 m, beam 4.350 m,
+and draft 2.250 m. Natural periods for heave, pitch, and roll are 2.939, 3.429,
+and 4.287 seconds, with damping ratios 0.45, 0.35, and 0.22.
+
+The hull dimensions scale from the 28-foot preset by 42/28; all response
+periods and horizontal time constants scale by the square root of that ratio.
+Damping ratios are held fixed. This assumes geometric similarity, not a
+particular production hull or loading condition.
+
+Every plot includes all four incident-height cases: 0.27, 1.5, 4.0, and 8.5 m.
+The first 60 seconds of each 20-minute, nominal 200 Hz record are plotted at
+20 Hz. World acceleration excludes gravity; accelerometer specific force
+includes gravity. Rotations and gyro readings describe the vessel rigid body.
+These are analytical surrogate RAOs, not measured hull data. The largest sea
+states extrapolate beyond the small-motion regime and are stress tests.
+The CSV filenames continue to describe the incident wave parameters.
+
+The complete dataset is \texttt{sim-data-files-vessel-rao-42ft.zip}; its internal
+filenames and columns match the surface dataset. See \texttt{doc/vessel-rao.md}
+for the response equations, coordinate conventions, and regular-wave details.
+\clearpage
+\section{Gerstner incident waves}
+\VesselChart{gerstner_worldframe}{World-frame CG displacement, velocity and acceleration.}
+\VesselChart{gerstner_imu_acc}{Body-frame accelerometer specific force.}
+\VesselChart{gerstner_imu_gyro}{Body-frame angular velocity.}
+\VesselChart{gerstner_euler}{Vessel Euler angles.}
+\section{Jonswap incident waves}
+\VesselChart{jonswap_worldframe}{World-frame CG displacement, velocity and acceleration.}
+\VesselChart{jonswap_imu_acc}{Body-frame accelerometer specific force.}
+\VesselChart{jonswap_imu_gyro}{Body-frame angular velocity.}
+\VesselChart{jonswap_euler}{Vessel Euler angles.}
+\section{Fenton incident waves}
+\VesselChart{fenton_worldframe}{World-frame CG displacement, velocity and acceleration.}
+\VesselChart{fenton_imu_acc}{Body-frame accelerometer specific force.}
+\VesselChart{fenton_imu_gyro}{Body-frame angular velocity.}
+\VesselChart{fenton_euler}{Vessel Euler angles.}
+\section{Pmstokes incident waves}
+\VesselChart{pmstokes_worldframe}{World-frame CG displacement, velocity and acceleration.}
+\VesselChart{pmstokes_imu_acc}{Body-frame accelerometer specific force.}
+\VesselChart{pmstokes_imu_gyro}{Body-frame angular velocity.}
+\VesselChart{pmstokes_euler}{Vessel Euler angles.}
+\section{Cnoidal incident waves}
+\VesselChart{cnoidal_worldframe}{World-frame CG displacement, velocity and acceleration.}
+\VesselChart{cnoidal_imu_acc}{Body-frame accelerometer specific force.}
+\VesselChart{cnoidal_imu_gyro}{Body-frame angular velocity.}
+\VesselChart{cnoidal_euler}{Vessel Euler angles.}
+\end{document}
