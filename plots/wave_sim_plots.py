@@ -1,237 +1,89 @@
 #!/usr/bin/env python3
-import pandas as pd
-import matplotlib.pyplot as plt
+"""Plot either surface-particle or vessel-RAO CSVs, with explicit dataset labels."""
+import argparse
+from pathlib import Path
 import matplotlib as mpl
-import os
-
+mpl.use('Agg')
+import matplotlib.pyplot as plt
+import pandas as pd
 from plot_sampling import get_decimation_step
 
-# === Matplotlib PGF/LaTeX config ===
-mpl.use("pgf")
-plt.rcParams.update({
-    "pgf.texsystem": "xelatex",
-    "font.family": "serif",
-    "text.usetex": True,
-    "pgf.rcfonts": False,
-    "pgf.preamble": "\n".join([
-        r"\usepackage{fontspec}",
-        r"\usepackage{unicode-math}",
-        r"\usepackage{amsmath}",
-        r"\setmainfont{DejaVu Serif}",
-        r"\setmathfont{Latin Modern Math}",
-        r"\providecommand{\mathdefault}[1]{#1}"
-    ])
-})
-
-# === Wave categories (heights to show explicitly) ===
-height_groups = {
-    "low":    [0.27],   # always green
-    "medium": [1.5],    # always blue
-    "high":   [8.5],    # always red
+WAVE_TYPES = ('gerstner', 'jonswap', 'fenton', 'pmstokes', 'cnoidal')
+HEIGHTS = (0.27, 1.5, 4.0, 8.5)
+COLORS = ('#167a3e', '#2365b0', '#8055ad', '#bd2929')
+CHARTS = {
+    'worldframe': [('Displacement [m]', ['disp_x', 'disp_y', 'disp_z']),
+                   ('Velocity [m/s]', ['vel_x', 'vel_y', 'vel_z']),
+                   ('Acceleration [m/s²]', ['acc_x', 'acc_y', 'acc_z'])],
+    'imu_acc': [(f'Specific force {c} [m/s²]', [f'acc_b{c}']) for c in 'xyz'],
+    'imu_gyro': [(f'Body rate {c} [rad/s]', [f'gyro_{c}']) for c in 'xyz'],
+    'euler': [(f'{c.capitalize()} [degrees]', [f'{c}_deg']) for c in ('roll', 'pitch', 'yaw')],
 }
 
-# Color palettes for each group (shades for x,y,z)
-height_colors = {
-    "low":    ['#a1d99b', '#41ab5d', '#005a32'],   # Greens
-    "medium": ['#9ecae1', '#3182bd', '#08306b'],   # Blues
-    "high":   ['#fcbba1', '#fb6a4a', '#a50f15'],   # Reds
-}
 
-# LaTeX-safe labels (mathtext) for components
-latex_labels = {
-    'disp_x':    r"$\mathrm{disp}_{x}$",
-    'disp_y':    r"$\mathrm{disp}_{y}$",
-    'disp_z':    r"$\mathrm{disp}_{z}$",
-    'vel_x':     r"$\mathrm{vel}_{x}$",
-    'vel_y':     r"$\mathrm{vel}_{y}$",
-    'vel_z':     r"$\mathrm{vel}_{z}$",
-    'acc_x':     r"$\mathrm{acc}_{x}$",
-    'acc_y':     r"$\mathrm{acc}_{y}$",
-    'acc_z':     r"$\mathrm{acc}_{z}$",
-    'acc_bx':    r"$\mathrm{acc}_{b,x}$",
-    'acc_by':    r"$\mathrm{acc}_{b,y}$",
-    'acc_bz':    r"$\mathrm{acc}_{b,z}$",
-    'gyro_x':    r"$\mathrm{gyro}_{x}$",
-    'gyro_y':    r"$\mathrm{gyro}_{y}$",
-    'gyro_z':    r"$\mathrm{gyro}_{z}$",
-    'roll_deg':  r"$\mathrm{roll}^{\circ}$",
-    'pitch_deg': r"$\mathrm{pitch}^{\circ}$",
-    'yaw_deg':   r"$\mathrm{yaw}^{\circ}$",
-}
-
-# Wave types to include (must match filenames)
-wave_types = ["gerstner", "jonswap", "fenton", "pmstokes", "cnoidal"]
-
-# Components for world-frame plots (full set)
-components = {
-    'Displacement': ['disp_x', 'disp_y', 'disp_z'],
-    'Velocity':     ['vel_x', 'vel_y', 'vel_z'],
-    'Acceleration': ['acc_x', 'acc_y', 'acc_z'],
-}
-
-# For restricted wave types (z-only)
-z_only_components = {
-    'Displacement': ['disp_z'],
-    'Velocity':     ['vel_z'],
-    'Acceleration': ['acc_z'],
-}
-
-# Sampling cutoff
-SAMPLE_RATE = 200
-MAX_TIME = 60.0
-MAX_RECORDS = int(SAMPLE_RATE * MAX_TIME)
-DECIMATION_STEP = get_decimation_step(base_rate_hz=SAMPLE_RATE)
+def load_cases(directory, wave_type, seconds):
+    cases = []
+    for height in HEIGHTS:
+        paths = sorted(directory.glob(f'wave_data_{wave_type}_H{height:.3f}_*.csv'))
+        if len(paths) != 1:
+            raise ValueError(f'Expected one {wave_type} H={height} record in {directory}, found {len(paths)}')
+        # Read only the plotted interval, not the entire 20-minute record four times.
+        frame = pd.read_csv(paths[0], nrows=int(seconds * 200) + 1)
+        required = {'time', *(c for groups in CHARTS.values() for _, cols in groups for c in cols)}
+        if not required.issubset(frame.columns) or frame.empty:
+            raise ValueError(f'Missing motion/IMU data: {paths[0]}')
+        frame = frame[frame.time <= seconds].iloc[::get_decimation_step()]
+        cases.append((height, frame))
+    return cases
 
 
-def load_plot_data(csv_file):
-    """Load bounded simulation data and decimate for plotting."""
-    data = pd.read_csv(csv_file).head(MAX_RECORDS)
-    if DECIMATION_STEP > 1:
-        data = data.iloc[::DECIMATION_STEP].reset_index(drop=True)
-    return data
-
-
-def find_file(wave_type, height):
-    """Find matching CSV file for wave_type and given height."""
-    fname = f"wave_data_{wave_type}_H{height:.3f}"
-    candidates = sorted(f for f in os.listdir(".") if f.startswith(fname) and f.endswith(".csv"))
-    return candidates[0] if candidates else None
-
-
-def label_for(col, h):
-    """Return pretty mathtext label for component + height."""
-    return f"H={h} {latex_labels.get(col, col)}"
-
-
-def plot_wave_type(wave_type):
-    """Generate plots (PGF+SVG) for one wave type."""
-
-    # Restrict to z-only for Gerstner, Fenton, and Cnoidal
-    if wave_type in ["gerstner", "fenton", "cnoidal"]:
-        comps = z_only_components
-    else:
-        comps = components
-
-    # --- Chart 1: world-frame disp/vel/acc ---
-    fig, axes = plt.subplots(len(comps), 1, figsize=(14, 12), sharex=True)
-    fig.suptitle(f"{wave_type.capitalize()} - World Frame")
-
-    for group, heights in height_groups.items():
-        for h in heights:
-            csv_file = find_file(wave_type, h)
-            if not csv_file:
-                continue
-            data = load_plot_data(csv_file)
-            time = data["time"]
-
-            for ax, (comp_label, cols) in zip(axes, comps.items()):
+def plot_wave_type(wave_type, args):
+    cases = load_cases(args.input_dir, wave_type, args.seconds)
+    regular = wave_type in ('gerstner', 'fenton', 'cnoidal')
+    dataset = '28 ft sailboat RAO' if args.vessel_rao else 'Surface / particle model'
+    for name, groups in CHARTS.items():
+        if regular and not args.vessel_rao and name != 'worldframe':
+            continue
+        fig, axes = plt.subplots(3, 1, figsize=(8, 9), sharex=True)
+        fig.suptitle(f'{wave_type.capitalize()} — {dataset}', fontsize=15)
+        for (height, frame), color in zip(cases, COLORS):
+            for ax, (label, columns) in zip(axes, groups):
+                cols = [columns[-1]] if regular and not args.vessel_rao and name == 'worldframe' else columns
                 for j, col in enumerate(cols):
-                    if wave_type in ["gerstner", "fenton", "cnoidal"]:
-                        comp_color = height_colors[group][-1]  # strong color for z-only
-                    else:
-                        comp_color = height_colors[group][j % len(height_colors[group])]
-                    ax.plot(time, data[col], label=label_for(col, h),
-                            color=comp_color, alpha=1.0, linewidth=1.2)
-                ax.set_ylabel(comp_label)
-                ax.grid(True)
-
-    axes[-1].set_xlabel("Time [s]")
-    axes[0].legend(fontsize="small", ncol=3)
-    plt.tight_layout(rect=[0, 0, 1, 0.95])
-    fig.savefig(f"{wave_type}_worldframe.pgf", bbox_inches="tight")
-    fig.savefig(f"{wave_type}_worldframe.svg", bbox_inches="tight")
-    plt.close(fig)
-
-    # Skip IMU/Euler plots for wave types without them
-    if wave_type in ["fenton", "gerstner", "cnoidal"]:
-        return
-
-    # --- Chart 2: IMU acceleration ---
-    fig, axes = plt.subplots(3, 1, figsize=(14, 12), sharex=True)
-    fig.suptitle(f"{wave_type.capitalize()} - IMU Acceleration")
-
-    for group, heights in height_groups.items():
-        for h in heights:
-            csv_file = find_file(wave_type, h)
-            if not csv_file:
-                continue
-            data = load_plot_data(csv_file)
-            time = data["time"]
-
-            for i, comp in enumerate(['acc_bx', 'acc_by', 'acc_bz']):
-                comp_color = height_colors[group][i % len(height_colors[group])]
-                axes[i].plot(time, data[comp], label=label_for(comp, h),
-                             color=comp_color, alpha=1.0, linewidth=1.2)
-                axes[i].set_ylabel(latex_labels.get(comp, comp))
-                axes[i].grid(True)
-
-    axes[-1].set_xlabel("Time [s]")
-    axes[0].legend(fontsize="small", ncol=3)
-    plt.tight_layout(rect=[0, 0, 1, 0.95])
-    fig.savefig(f"{wave_type}_imu_acc.pgf", bbox_inches="tight")
-    fig.savefig(f"{wave_type}_imu_acc.svg", bbox_inches="tight")
-    plt.close(fig)
-
-    # --- Chart 3: IMU gyro ---
-    fig, axes = plt.subplots(3, 1, figsize=(14, 12), sharex=True)
-    fig.suptitle(f"{wave_type.capitalize()} - IMU Gyro")
-
-    for group, heights in height_groups.items():
-        for h in heights:
-            csv_file = find_file(wave_type, h)
-            if not csv_file:
-                continue
-            data = load_plot_data(csv_file)
-            time = data["time"]
-
-            for i, comp in enumerate(['gyro_x', 'gyro_y', 'gyro_z']):
-                comp_color = height_colors[group][i % len(height_colors[group])]
-                axes[i].plot(time, data[comp], label=label_for(comp, h),
-                             color=comp_color, alpha=1.0, linewidth=1.2)
-                axes[i].set_ylabel(latex_labels.get(comp, comp))
-                axes[i].grid(True)
-
-    axes[-1].set_xlabel("Time [s]")
-    axes[0].legend(fontsize="small", ncol=3)
-    plt.tight_layout(rect=[0, 0, 1, 0.95])
-    fig.savefig(f"{wave_type}_imu_gyro.pgf", bbox_inches="tight")
-    fig.savefig(f"{wave_type}_imu_gyro.svg", bbox_inches="tight")
-    plt.close(fig)
-
-    # --- Chart 4: Euler angles ---
-    if wave_type in ["jonswap", "pmstokes"]:
-        euler_comps = ['roll_deg', 'pitch_deg', 'yaw_deg']
-    else:
-        euler_comps = []
-
-    if euler_comps:
-        fig, axes = plt.subplots(len(euler_comps), 1, figsize=(14, 8), sharex=True)
-        fig.suptitle(f"{wave_type.capitalize()} - Euler Angles")
-
-        for group, heights in height_groups.items():
-            for h in heights:
-                csv_file = find_file(wave_type, h)
-                if not csv_file:
-                    continue
-                data = load_plot_data(csv_file)
-                time = data["time"]
-
-                for i, comp in enumerate(euler_comps):
-                    comp_color = height_colors[group][i % len(height_colors[group])]
-                    axes[i].plot(time, data[comp], label=label_for(comp, h),
-                                 color=comp_color, alpha=1.0, linewidth=1.2)
-                    axes[i].set_ylabel(latex_labels.get(comp, comp))
-                    axes[i].grid(True)
-
-        axes[-1].set_xlabel("Time [s]")
-        axes[0].legend(fontsize="small", ncol=3)
-        plt.tight_layout(rect=[0, 0, 1, 0.95])
-        fig.savefig(f"{wave_type}_euler.pgf", bbox_inches="tight")
-        fig.savefig(f"{wave_type}_euler.svg", bbox_inches="tight")
+                    component = col.rsplit('_', 1)[-1] if len(cols) > 1 else ''
+                    ax.plot(frame.time, frame[col], color=color, linestyle=('-', '--', ':')[j],
+                            linewidth=1.0, label=f'H={height:g} m {component}'.strip())
+                ax.set_ylabel(label)
+                ax.grid(alpha=0.3)
+        axes[0].legend(fontsize=9, ncol=4)
+        axes[-1].set_xlabel('Time [s]')
+        fig.tight_layout(rect=(0, 0, 1, 0.96))
+        for extension in args.formats:
+            path = args.output_dir / f'{args.prefix}{wave_type}_{name}.{extension}'
+            fig.savefig(path, bbox_inches='tight')
+            print(path)
         plt.close(fig)
 
 
-if __name__ == "__main__":
-    for wt in wave_types:
-        plot_wave_type(wt)
-    print("All PGF and SVG plots saved.")
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--input-dir', type=Path, default=Path('.'))
+    parser.add_argument('--output-dir', type=Path, default=Path('.'))
+    parser.add_argument('--vessel-rao', action='store_true')
+    parser.add_argument('--prefix', default='')
+    parser.add_argument('--seconds', type=float, default=60)
+    parser.add_argument('--formats', nargs='+', choices=('pgf', 'svg', 'png', 'pdf'), default=['pgf', 'svg'])
+    args = parser.parse_args()
+    if not 0 < args.seconds <= 1200:
+        parser.error('--seconds must be in (0, 1200]')
+    args.output_dir.mkdir(parents=True, exist_ok=True)
+    mpl.rcParams.update({'font.family': 'DejaVu Serif', 'font.size': 10,
+                         'pgf.texsystem': 'xelatex', 'pgf.rcfonts': False,
+                         'pgf.preamble': r'\usepackage{unicode-math}\setmainfont{DejaVu Serif}\setmathfont{Latin Modern Math}',
+                         'svg.fonttype': 'none'})
+    for wave_type in WAVE_TYPES:
+        plot_wave_type(wave_type, args)
+
+
+if __name__ == '__main__':
+    main()
