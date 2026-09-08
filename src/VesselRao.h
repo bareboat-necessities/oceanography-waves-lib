@@ -12,7 +12,7 @@
 #include <vector>
 #include "WaveHarmonic.h"
 
-// Estimated, zero-speed displacement RAOs for a 28 ft fin-keel sailboat.
+// Estimated, zero-speed displacement RAOs for a fin-keel sailboat family.
 // This is a configurable response surrogate, not measured hull data.
 // Axes: x forward, y port, z up. IMU and response origin are at the CG.
 // See doc/vessel-rao.md for equations, units, assumptions and limitations.
@@ -33,6 +33,24 @@ public:
         double heading = 0.0;          // rad, fixed mean heading in world frame
         double gravity = 9.80665;
     };
+    // Geometrically similar hull family: lengths scale by R, times by sqrt(R).
+    // The 28 ft preset returns the original defaults exactly.
+    static Parameters sailboat(int length_feet) {
+        if (length_feet != 28 && length_feet != 34 && length_feet != 42 && length_feet != 50)
+            throw std::invalid_argument("VesselRao: supported sailboats are 28, 34, 42, 50 ft");
+        Parameters p;
+        const double ratio=length_feet/28.0, time_scale=std::sqrt(ratio);
+        p.waterline_length *= ratio;
+        p.beam *= ratio;
+        p.draft *= ratio;
+        p.heave_period *= time_scale;
+        p.pitch_period *= time_scale;
+        p.roll_period *= time_scale;
+        p.surge_time *= time_scale;
+        p.sway_time *= time_scale;
+        return p;
+    }
+
     using Transfer = std::array<std::complex<double>, 6>; // surge,sway,heave,roll,pitch,yaw
     struct State {
         Eigen::Vector3d displacement = Eigen::Vector3d::Zero(); // world, m

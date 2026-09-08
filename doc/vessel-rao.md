@@ -158,11 +158,11 @@ runs. Without `--output-dir`, vessel files go in `vessel-rao-28ft/` under the
 current directory, preventing default output from overwriting particle files.
 
 CI uploads the separate replacement ZIP on PRs. After all tests, chart jobs and PDF builds pass on main, the complete versioned
-release includes both data archives, SVG/PGF chart archives and PDFs. Release
-1.2.1 is tagged `v1.2.1`; the RAO chart document is
+release includes all five data archives, SVG/PGF chart archives and PDFs. Release
+1.2.2 is tagged `v1.2.2`; the RAO chart document is
 `wave_sim_charts_vessel_rao_28ft.pdf`. The packaging step
 rejects missing/extra wave files, schema changes, or changed incident spectra.
-`python3 tests/vessel_archive.py` checks all 20 cases, exact time-column parity,
+`python3 tests/vessel_archive.py` checks all 80 vessel cases, exact time-column parity,
 finite data, IMU frame recovery, archive names and auxiliary-file preservation.
 
 ## Scope
@@ -212,3 +212,50 @@ generator was complete. For this local evidence, complete CSV bytes were streame
 from the generator to the parent process before exit, then saved and independently
 audited with the script above. This transport-only workaround changes no samples
 and is not needed by the model API. CI audits its saved files before publishing.
+
+## Additional 34 ft, 42 ft, and 50 ft presets
+
+`VesselRao::sailboat(length_feet)` selects 28, 34, 42, or 50 ft. The 28 ft
+preset preserves the original parameters. The larger presets are geometrically
+similar fin-keel surrogates, not measured responses of particular production
+boats. Set `R = length_feet / 28`: waterline length, beam, and keel draft scale
+by `R`; natural periods and surge/sway time constants scale by `sqrt(R)`.
+Dimensionless damping ratios, gravity, and fixed mean heading stay unchanged.
+This follows [Froude scaling of vessel response data](https://www.orcina.com/webhelp/OrcaFlex/Content/html/Vesseldata.htm).
+At corresponding scaled frequencies, translation RAOs remain dimensionless
+and rotational RAOs in rad/m scale by `1/R`. The tests check this relation for
+all six response components. The incident wave spectrum itself is not scaled.
+
+| Nominal LOA | Waterline (m) | Beam (m) | Draft (m) | Heave period (s) | Pitch period (s) | Roll period (s) |
+|---|---:|---:|---:|---:|---:|---:|
+| 28 ft | 7.000 | 2.900 | 1.500 | 2.400 | 2.800 | 3.500 |
+| 34 ft | 8.500 | 3.521 | 1.821 | 2.645 | 3.085 | 3.857 |
+| 42 ft | 10.500 | 4.350 | 2.250 | 2.939 | 3.429 | 4.287 |
+| 50 ft | 12.500 | 5.179 | 2.679 | 3.207 | 3.742 | 4.677 |
+
+Generate one preset with `./waves_sim --vessel-length-ft 42`, or run
+`bash gen_sim_data.sh` from `data-sim` to generate the surface dataset and all
+four vessels. `--vessel-rao` remains an alias for the original 28 ft response;
+`--vessel-length-ft` also enables vessel mode. Unsupported lengths are rejected.
+The default output directory is `vessel-rao-<length>ft`.
+
+Packaging requires all four vessel directories, compares their schemas and
+incident spectra with the surface files, and produces:
+
+- `sim-data-files.zip`
+- `sim-data-files-vessel-rao-28ft.zip`
+- `sim-data-files-vessel-rao-34ft.zip`
+- `sim-data-files-vessel-rao-42ft.zip`
+- `sim-data-files-vessel-rao-50ft.zip`
+
+All five archives have identical flat CSV member names. Auxiliary incident-wave
+plotting tables are copied unchanged. CI audits each full set of 20 vessel
+records, produces 20 motion/IMU charts per hull, and builds separate
+`plot-files-vessel-rao-<length>ft.zip` and
+`wave_sim_charts_vessel_rao_<length>ft.pdf` outputs. New sizes use distinct PGF
+prefixes so their figures cannot overwrite the existing 28 ft figures.
+
+Geometric similarity does not capture hull-specific beam/length ratios,
+ballast, loading, roll damping, sailing speed, or nonlinear slamming. In
+particular, the 8.5 m incident seas remain extrapolative stress tests. These
+presets must not be interpreted as validated heavy-weather predictions.

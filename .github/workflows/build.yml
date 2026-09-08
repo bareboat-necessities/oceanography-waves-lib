@@ -63,7 +63,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y make g++ libeigen3-dev
-      - name: Generate both simulation datasets
+      - name: Generate surface and all four vessel datasets
         run: |
           cd data-sim
           bash gen_sim_data.sh
@@ -74,7 +74,11 @@ jobs:
           ./fenton_plots
           mv *.csv ../data-sim/
       - name: Audit all full vessel records
-        run: python3 data-sim/audit_vessel_data.py data-sim/vessel-rao-28ft > vessel-rao-reference-audit.csv
+        run: |
+          python3 data-sim/audit_vessel_data.py data-sim/vessel-rao-28ft > vessel-rao-reference-audit.csv
+          for feet in 34 42 50; do
+            python3 data-sim/audit_vessel_data.py "data-sim/vessel-rao-${feet}ft" > "vessel-rao-${feet}ft-reference-audit.csv"
+          done
       - name: Package interchangeable simulation archives
         run: python3 data-sim/package_sim_data.py data-sim
       - uses: actions/upload-artifact@v4
@@ -86,7 +90,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: vessel-rao-reference-audit
-          path: vessel-rao-reference-audit.csv
+          path: vessel-rao*reference-audit.csv
           if-no-files-found: error
 
   gen-plots:
@@ -100,9 +104,28 @@ jobs:
           - dataset: surface
             data: sim-data-files.zip
             archive: plot-files.zip
+            feet: 28
+            prefix: unused_
           - dataset: vessel-rao
             data: sim-data-files-vessel-rao-28ft.zip
             archive: plot-files-vessel-rao-28ft.zip
+            feet: 28
+            prefix: vessel_rao_
+          - dataset: vessel-rao-34ft
+            data: sim-data-files-vessel-rao-34ft.zip
+            archive: plot-files-vessel-rao-34ft.zip
+            feet: 34
+            prefix: vessel_rao_34ft_
+          - dataset: vessel-rao-42ft
+            data: sim-data-files-vessel-rao-42ft.zip
+            archive: plot-files-vessel-rao-42ft.zip
+            feet: 42
+            prefix: vessel_rao_42ft_
+          - dataset: vessel-rao-50ft
+            data: sim-data-files-vessel-rao-50ft.zip
+            archive: plot-files-vessel-rao-50ft.zip
+            feet: 50
+            prefix: vessel_rao_50ft_
     steps:
       - uses: actions/checkout@v4
       - name: Install plotting dependencies
@@ -124,8 +147,11 @@ jobs:
           cd plots
           bash draw_plots.sh
       - name: Generate vessel RAO plots
-        if: matrix.dataset == 'vessel-rao'
-        run: python3 plots/wave_sim_plots.py --input-dir plots --output-dir plots --vessel-rao --prefix vessel_rao_
+        if: matrix.dataset != 'surface'
+        env:
+          VESSEL_FEET: ${{ matrix.feet }}
+          PLOT_PREFIX: ${{ matrix.prefix }}
+        run: python3 plots/wave_sim_plots.py --input-dir plots --output-dir plots --vessel-rao --vessel-length-ft "$VESSEL_FEET" --prefix "$PLOT_PREFIX"
       - name: Check and package charts
         env:
           CHART_ARCHIVE: ${{ matrix.archive }}
@@ -162,7 +188,7 @@ jobs:
         run: |
           cp plots/*.pgf doc/
           cp plots/*.png doc/
-      - name: Compile all six LaTeX documents
+      - name: Compile all nine LaTeX documents
         uses: xu-cheng/latex-action@v4
         with:
           root_file: "*.tex"

@@ -40,7 +40,7 @@ def load_cases(directory, wave_type, seconds):
 def plot_wave_type(wave_type, args):
     cases = load_cases(args.input_dir, wave_type, args.seconds)
     regular = wave_type in ('gerstner', 'fenton', 'cnoidal')
-    dataset = '28 ft sailboat RAO' if args.vessel_rao else 'Surface / particle model'
+    dataset = f'{args.vessel_length_ft} ft sailboat RAO' if args.vessel_rao else 'Surface / particle model'
     for name, groups in CHARTS.items():
         if regular and not args.vessel_rao and name != 'worldframe':
             continue
@@ -70,6 +70,7 @@ def main():
     parser.add_argument('--input-dir', type=Path, default=Path('.'))
     parser.add_argument('--output-dir', type=Path, default=Path('.'))
     parser.add_argument('--vessel-rao', action='store_true')
+    parser.add_argument('--vessel-length-ft', type=int, choices=(28,34,42,50), default=28)
     parser.add_argument('--prefix', default='')
     parser.add_argument('--seconds', type=float, default=60)
     parser.add_argument('--formats', nargs='+', choices=('pgf', 'svg', 'png', 'pdf'), default=['pgf', 'svg'])

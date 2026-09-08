@@ -1,22 +1,27 @@
 \documentclass[11pt,letterpaper]{article}
 \usepackage{amsmath,amssymb,fullpage,graphicx,pgf,float,hyperref}
 \providecommand{\mathdefault}[1]{#1}
-\title{28-Foot Fin-Keel Sailboat: Vessel RAO Simulation Charts}
+\title{50-Foot Fin-Keel Sailboat: Vessel RAO Simulation Charts}
 \author{Mikhail Grushinskiy}
 \date{Release 1.2.2}
 \newcommand{\VesselChart}[2]{
   \begin{figure}[H]\centering
-  \resizebox{\textwidth}{!}{\input{vessel_rao_#1.pgf}}
+  \resizebox{\textwidth}{!}{\input{vessel_rao_50ft_#1.pgf}}
   \caption{#2}
   \end{figure}\clearpage
 }
 \begin{document}
 \maketitle
 These charts show vessel motion, rather than surface-particle motion, for an
-estimated 28-foot fin-keel sailboat at zero forward speed with fixed heading
-and an IMU at the center of gravity. Waterline length is 7.0 m, beam 2.9 m,
-and draft 1.5 m. Natural periods for heave, pitch, and roll are 2.4, 2.8,
-and 3.5 seconds, with damping ratios 0.45, 0.35, and 0.22.
+estimated 50-foot fin-keel sailboat at zero forward speed with fixed heading
+and an IMU at the center of gravity. Waterline length is 12.500 m, beam 5.179 m,
+and draft 2.679 m. Natural periods for heave, pitch, and roll are 3.207, 3.742,
+and 4.677 seconds, with damping ratios 0.45, 0.35, and 0.22.
+
+The hull dimensions scale from the 28-foot preset by 50/28; all response
+periods and horizontal time constants scale by the square root of that ratio.
+Damping ratios are held fixed. This assumes geometric similarity, not a
+particular production hull or loading condition.
 
 Every plot includes all four incident-height cases: 0.27, 1.5, 4.0, and 8.5 m.
 The first 60 seconds of each 20-minute, nominal 200 Hz record are plotted at
@@ -26,7 +31,7 @@ These are analytical surrogate RAOs, not measured hull data. The largest sea
 states extrapolate beyond the small-motion regime and are stress tests.
 The CSV filenames continue to describe the incident wave parameters.
 
-The complete dataset is \texttt{sim-data-files-vessel-rao-28ft.zip}; its internal
+The complete dataset is \texttt{sim-data-files-vessel-rao-50ft.zip}; its internal
 filenames and columns match the surface dataset. See \texttt{doc/vessel-rao.md}
 for the response equations, coordinate conventions, and regular-wave details.
 \clearpage

@@ -9,13 +9,17 @@ The project includes:
 
 ## Results
 
-[Release 1.2.1](https://github.com/bareboat-necessities/oceanography-waves-lib/releases/tag/v1.2.1) includes both simulation datasets, SVG/PGF chart archives, and all PDF documentation.
+[Release 1.2.2](https://github.com/bareboat-necessities/oceanography-waves-lib/releases/tag/v1.2.2) includes all five simulation datasets, SVG/PGF chart archives, and all PDF documentation.
 
-- [Vessel RAO chart PDF](https://github.com/bareboat-necessities/oceanography-waves-lib/releases/download/v1.2.1/wave_sim_charts_vessel_rao_28ft.pdf)
-- [Vessel RAO SVG/PGF charts](https://github.com/bareboat-necessities/oceanography-waves-lib/releases/download/v1.2.1/plot-files-vessel-rao-28ft.zip)
-- [Vessel RAO simulation CSVs](https://github.com/bareboat-necessities/oceanography-waves-lib/releases/download/v1.2.1/sim-data-files-vessel-rao-28ft.zip)
+- [Vessel RAO chart PDF](https://github.com/bareboat-necessities/oceanography-waves-lib/releases/download/v1.2.2/wave_sim_charts_vessel_rao_28ft.pdf)
+- [Vessel RAO SVG/PGF charts](https://github.com/bareboat-necessities/oceanography-waves-lib/releases/download/v1.2.2/plot-files-vessel-rao-28ft.zip)
+- [Vessel RAO simulation CSVs](https://github.com/bareboat-necessities/oceanography-waves-lib/releases/download/v1.2.2/sim-data-files-vessel-rao-28ft.zip)
 
-The vessel charts cover all five wave families and all four incident heights, including H=4 m. Surface and vessel charts are labeled and packaged separately. A versioned release is published only after tests, full simulation audits, both plotting jobs and all PDF builds succeed.
+- [34 ft RAO simulation CSVs](https://github.com/bareboat-necessities/oceanography-waves-lib/releases/download/v1.2.2/sim-data-files-vessel-rao-34ft.zip)
+- [42 ft RAO simulation CSVs](https://github.com/bareboat-necessities/oceanography-waves-lib/releases/download/v1.2.2/sim-data-files-vessel-rao-42ft.zip)
+- [50 ft RAO simulation CSVs](https://github.com/bareboat-necessities/oceanography-waves-lib/releases/download/v1.2.2/sim-data-files-vessel-rao-50ft.zip)
+
+The vessel charts cover all five wave families and all four incident heights, including H=4 m. Surface and vessel charts are labeled and packaged separately. A versioned release is published only after tests, full simulation audits, all five plotting jobs and all PDF builds succeed.
 
 <p align="center">
   <img src="./img/samples/spectrum_pmstokes_medium_3d.svg?raw=true" style="max-width: 50%;">
@@ -92,8 +96,8 @@ An additional estimated **28-foot fin-keel sailboat RAO** simulation is availabl
 
 It writes vessel CG motion and consistent IMU/attitude references into
 `vessel-rao-28ft/`, using the original CSV filenames and columns. Running
-`bash gen_sim_data.sh` generates both datasets; `python3 package_sim_data.py`
-packages them as `sim-data-files.zip` and **`sim-data-files-vessel-rao-28ft.zip`**
+`bash gen_sim_data.sh` generates the surface dataset and all four vessel sizes; `python3 package_sim_data.py`
+packages them as `sim-data-files.zip` and **`sim-data-files-vessel-rao-<size>ft.zip`**
 with identical member names. CI also includes the existing ancillary plotting
 CSVs and uploads the additional ZIP as its own artifact/release asset.
 See [vessel RAO parameters, equations and scope](doc/vessel-rao.md). The preset
@@ -181,3 +185,17 @@ g++ -O3 -I./src -I/usr/include/eigen3 your_file.cpp -o your_program
 
 This project is distributed under the terms of the `LICENSE` file in the repository root.
 
+
+### Sailboat size variants
+
+The generator also supports **34 ft, 42 ft, and 50 ft** fin-keel RAO presets,
+using documented geometric/Froude scaling of the existing 28 ft surrogate.
+Run `./waves_sim --vessel-length-ft 34` (or `42`, `50`) from `data-sim`.
+The standard generation and packaging workflow produces separate
+`sim-data-files-vessel-rao-34ft.zip`, `sim-data-files-vessel-rao-42ft.zip`, and
+`sim-data-files-vessel-rao-50ft.zip` with the same CSV filenames and columns as
+the 28 ft ZIP. Each size also has a chart ZIP, a PDF, and a full-record audit
+in CI artifacts and release 1.2.2. Existing release 1.2.1 is
+immutable and contains only the original surface and 28 ft datasets.
+
+See [vessel preset parameters and assumptions](doc/vessel-rao.md#additional-34-ft-42-ft-and-50-ft-presets).
