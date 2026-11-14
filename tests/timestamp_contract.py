@@ -21,6 +21,13 @@ class TimestampTests(unittest.TestCase):
         self.assertEqual(gate.validate_timestamps(records(), 'wave_data_jonswap_test.csv', 1200), 240000)
         self.assertEqual(gate.validate_timestamps(records(2, 240001), 'wave_data_fenton_test.csv', 1200), 239999)
 
+    def test_ancillary_fenton_tracker_clock(self):
+        lines = records(2, 6001)
+        next(lines)
+        import itertools
+        self.assertEqual(gate.validate_timestamps(itertools.chain(['Time(s),x\n'], lines),
+                                                  'wave_tracker_data.csv', 30), 5999)
+
     def test_six_significant_digits_fail_at_first_loss(self):
         # Non-Fenton clocks are representable at six digits until 1000.005 s.
         with self.assertRaisesRegex(ValueError, r'row 200003: time 1000.0, expected 1000.005'):

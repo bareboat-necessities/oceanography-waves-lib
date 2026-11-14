@@ -57,6 +57,10 @@ def check():
                                for i, c in enumerate("xyz")) < 2e-4, path.name
         # Auxiliary plotting tables must also survive a drop-in replacement.
         (root / "fenton_aux.csv").write_text("x,eta\n0,1\n")
+        with (root / "wave_tracker_data.csv").open("w") as source:
+            source.write("Time(s),Displacement(m),Velocity(m/s),Acceleration(m/s²),X_Position(m)\n")
+            for step in range(2, 6001):
+                source.write(f"{step / 200:.17g},0,0,0,0\n")
         paths = packaging.package(root, duration=0.05)
         assert len(paths) == 9
         assert {p.name for p in paths if "5kn" in p.name} == {
@@ -69,6 +73,8 @@ def check():
                     if name.startswith("wave_data_"):
                         packaging.validate_timestamps(iter(b.read(name).decode().splitlines()), name, 0.05)
                         assert b.read(name) == (root / vessel_zip.stem.removeprefix("sim-data-files-") / name).read_bytes()
+                    if name == "wave_tracker_data.csv":
+                        packaging.validate_timestamps(iter(b.read(name).decode().splitlines()), name, 30)
                     assert a.read(name).splitlines()[0] == b.read(name).splitlines()[0]
                     if not name.startswith("wave_data_"):
                         assert a.read(name) == b.read(name), name

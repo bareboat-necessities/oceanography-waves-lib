@@ -138,7 +138,9 @@ Fenton retains its two-sample startup and inclusive endpoint: `0.010` through
 `1200.000` (239,999 rows); other models run from `0` through `1199.995`
 (240,000 rows). Surface, stationary vessel and moving vessel clocks agree.
 Packaging rejects incorrect clocks; CI also reads all nine resulting ZIPs to
-verify every timestamp and row count. The ZIP members preserve the CSV bytes.
+verify every timestamp and row count. The ZIP members preserve the CSV bytes. The ancillary 30-second Fenton
+plotting time series (`wave_tracker_data.csv`) also uses this clock and is
+validated in every ZIP.
 Older release archives retain their original timestamps; use version 1.3.1 or
 later for the corrected clocks. Re-labeling old rows cannot repair the Fenton
 integration clock; regenerate the simulations.

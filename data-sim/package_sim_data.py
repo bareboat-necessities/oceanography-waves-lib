@@ -16,6 +16,9 @@ def package(root, duration=1200):
         if name.startswith("wave_data_"):
             with original[name].open() as source:
                 validate_timestamps(source, name, duration)
+    if "wave_tracker_data.csv" in original:
+        with original["wave_tracker_data.csv"].open() as source:
+            validate_timestamps(source, "wave_tracker_data.csv", 30)
     variants = [("sim-data-files.zip", {})]
     for feet, suffix in ((feet, suffix) for suffix in ("", "-5kn") for feet in (28, 34, 42, 50)):
         vessel = root / f"vessel-rao-{feet}ft{suffix}"

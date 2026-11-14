@@ -10,9 +10,9 @@ SAMPLE_RATE = 200
 
 
 def validate_timestamps(lines, name, duration=None):
-    if next(lines, '').split(',')[0] != 'time':
+    if next(lines, '').split(',')[0] not in ('time', 'Time(s)'):
         raise ValueError(f'{name}: missing time column')
-    first = 2 if Path(name).name.startswith('wave_data_fenton_') else 0
+    first = 2 if Path(name).name.startswith('wave_data_fenton_') or Path(name).name == 'wave_tracker_data.csv' else 0
     count = 0
     for count, line in enumerate(lines, 1):
         actual = float(line.partition(',')[0])
@@ -41,9 +41,11 @@ def audit(path, duration):
             names = [n for n in archive.namelist() if n.startswith('wave_data_') and n.endswith('.csv')]
             if len(names) != 20:
                 raise ValueError(f'{path}: expected 20 wave records, found {len(names)}')
+            if 'wave_tracker_data.csv' in archive.namelist():
+                names.append('wave_tracker_data.csv')
             for name in names:
                 with archive.open(name) as raw, io.TextIOWrapper(raw) as source:
-                    validate_timestamps(source, name, duration)
+                    validate_timestamps(source, name, 30 if name == 'wave_tracker_data.csv' else duration)
     else:
         with path.open() as source:
             validate_timestamps(source, path.name, duration)
