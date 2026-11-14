@@ -122,9 +122,13 @@ ancillary Fenton plotting CSVs retain their incident-wave meaning. No metadata
 files or directory prefix are inserted into the replacement ZIP.
 
 The spectral and Gerstner/Cnoidal records retain 240,000 samples at nominal
-200 Hz over 20 minutes. Fenton retains its existing float clock and initial
-sample omission, including the existing difference in its row count. Both
-modes use the same CSV writer.
+200 Hz over 20 minutes. Timestamps use integer sample indices divided by 200
+and lossless double serialization. Fenton retains its initial
+sample omission and inclusive endpoint: 239,999 rows from 0.010 through
+1200.000 seconds. Other records contain 240,000 rows from 0 through 1199.995
+seconds. Surface and vessel modes use the same clocks and CSV writer.
+Version 1.3.1 corrects earlier rounded timestamps and float-clock drift; all
+nine ZIPs are regenerated and their time columns checked in CI.
 
 * `disp_*`, `vel_*`, `acc_*`: vessel CG motion in world axes; acceleration excludes gravity.
 * `acc_b*`: body-frame specific force, `C_wb * (a_world + [0,0,g])`.

@@ -27,6 +27,9 @@ jobs:
       - name: Build and run tests
         run: make -C tests clean check
 
+      - name: Test timestamp release gate through 1200 seconds
+        run: python3 tests/timestamp_contract.py
+
       - name: Test release completeness and immutable tags
         run: python3 tests/release_contract.py
 
@@ -84,6 +87,8 @@ jobs:
           done
       - name: Package interchangeable simulation archives
         run: python3 data-sim/package_sim_data.py data-sim
+      - name: Verify exact clocks in all nine packaged ZIPs
+        run: python3 data-sim/timestamp_contract.py data-sim/*.zip
       - uses: actions/upload-artifact@v4
         with:
           name: simulation-archives

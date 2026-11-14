@@ -3,12 +3,22 @@
 import argparse
 import zipfile
 from pathlib import Path
+import sys
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from timestamp_contract import validate_timestamps
 
 
-def package(root):
+def package(root, duration=1200):
     root = Path(root)
     original = {p.name: p for p in root.glob("*.csv")}
     wave_names = {n for n in original if n.startswith(("wave_data_", "wave_spectrum_"))}
+    for name in sorted(wave_names):
+        if name.startswith("wave_data_"):
+            with original[name].open() as source:
+                validate_timestamps(source, name, duration)
+    if "wave_tracker_data.csv" in original:
+        with original["wave_tracker_data.csv"].open() as source:
+            validate_timestamps(source, "wave_tracker_data.csv", 30)
     variants = [("sim-data-files.zip", {})]
     for feet, suffix in ((feet, suffix) for suffix in ("", "-5kn") for feet in (28, 34, 42, 50)):
         vessel = root / f"vessel-rao-{feet}ft{suffix}"
@@ -17,6 +27,9 @@ def package(root):
             raise ValueError(f"{feet} ft{suffix} vessel CSV members differ: missing={sorted(wave_names-set(response))}, "
                              f"extra={sorted(set(response)-wave_names)}")
         for name, path in response.items():
+            if name.startswith("wave_data_"):
+                with path.open() as source:
+                    validate_timestamps(source, name, duration)
             with original[name].open() as a, path.open() as b:
                 if a.readline() != b.readline():
                     raise ValueError(f"{feet} ft{suffix} CSV schema differs: {name}")
@@ -39,4 +52,6 @@ def package(root):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("directory", nargs="?", default=".", type=Path)
-    package(parser.parse_args().directory)
+    parser.add_argument("--duration", type=float, default=1200)
+    args = parser.parse_args()
+    package(args.directory, args.duration)

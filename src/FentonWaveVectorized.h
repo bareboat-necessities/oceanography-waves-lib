@@ -1,4 +1,7 @@
 #pragma once
+#include <cstdint>
+#include <iomanip>
+#include <limits>
 
 /*
    Copyright 2025, Mikhail Grushinskiy
@@ -788,7 +791,12 @@ class EIGEN_ALIGN_MAX WaveSurfaceTracker {
       // Initialize vertical velocity
       Real prev_z_dot = wave.surface_time_derivative(x, 0) + wave.surface_slope(x, 0) * vx;
 
-      while (t <= duration) {
+      // Derive time from an integer sample index, never accumulate float dt.
+      const double sample_rate = 1.0 / static_cast<double>(dt);
+      for (std::uint64_t step = 0; ; ++step) {
+        const double sample_time = step / sample_rate;
+        if (sample_time > static_cast<double>(duration)) break;
+        t = static_cast<Real>(sample_time);
         // Compute current vertical displacement on wave surface
         Real z = wave.surface_elevation(x, t);
 
@@ -811,7 +819,6 @@ class EIGEN_ALIGN_MAX WaveSurfaceTracker {
         // Integrate horizontal position and velocity with RK4
         rk4_step(x, vx, t, dt);
 
-        t += dt;
       }
     }
 
@@ -851,11 +858,11 @@ void FentonWave_test_2() {
   const float drag = 0.1f;     // Linear drag coeff opposing velocity
 
   // Simulation parameters
-  const float duration = 30.0f; // Simulation duration (s)
-  const float dt = 0.005f;      // Time step (s)
+  const double duration = 30.0; // Simulation duration (s)
+  const double dt = 1.0 / 200.0; // Time step (s)
 
   // Create a 5th-order Fenton wave and a surface tracker
-  WaveSurfaceTracker<5> tracker(height, depth, length, init_x, mass, drag);
+  WaveSurfaceTracker<5, double> tracker(height, depth, length, init_x, mass, drag);
 
   // Output file
   std::ofstream out("wave_tracker_data.csv");
@@ -863,8 +870,9 @@ void FentonWave_test_2() {
 
   // Define the kinematics callback (writes data to file)
   auto kinematics_callback = [&out](
-      float time, float dt, float elevation, float vertical_velocity, float vertical_acceleration, float horizontal_position, float horizontal_speed) {
-    out << time << "," << elevation << "," << vertical_velocity << "," << vertical_acceleration << "," << horizontal_position << "\n";
+      double time, double dt, double elevation, double vertical_velocity, double vertical_acceleration, double horizontal_position, double horizontal_speed) {
+    out << std::setprecision(std::numeric_limits<double>::max_digits10) << time << ","
+        << std::setprecision(6) << elevation << "," << vertical_velocity << "," << vertical_acceleration << "," << horizontal_position << "\n";
   };
 
   // Track floating object (using callback)

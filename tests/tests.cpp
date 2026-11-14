@@ -6,6 +6,8 @@
 #define EIGEN_NON_ARDUINO
 
 #include <cmath>
+#include <chrono>
+#include <filesystem>
 #include <functional>
 #include <iostream>
 #include <memory>
@@ -218,11 +220,14 @@ void test_pm_spectrum_and_errors() {
 
 #include "jonswap_physics.h"
 #include "vessel_rao.h"
+#include "csv_timestamps.h"
 
 }  // namespace
 
 int main() {
   const std::vector<std::pair<std::string, std::function<void()>>> tests = {
+      {"lossless CSV timestamps through 1200 seconds", test_csv_timestamps},
+      {"Fenton integer sample clock through 1200 seconds", test_fenton_sample_clock},
       {"vessel RAO limits, symmetry and phase", test_vessel_transfer},
       {"vessel rigid-body kinematics and IMU", test_vessel_kinematics},
       {"moving vessel track, encounter response and IMU", test_moving_vessel},

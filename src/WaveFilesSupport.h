@@ -4,6 +4,7 @@
 #include <string>
 #include <sstream>
 #include <iomanip>
+#include <limits>
 #include <optional>
 #include <vector>
 #include <fstream>
@@ -264,8 +265,9 @@ public:
     }
 
     void write(const Wave_Data_Sample &s) {
-        const auto clock_precision=ofs.precision();
-        ofs << s.time << ","
+        // Round-trip the double clock independently of state-column precision.
+        ofs << std::setprecision(std::numeric_limits<double>::max_digits10)
+            << s.time << ","
             << std::setprecision(state_precision_)
             << s.wave.disp_x << "," << s.wave.disp_y << "," << s.wave.disp_z << ","
             << s.wave.vel_x  << "," << s.wave.vel_y  << "," << s.wave.vel_z << ","
@@ -275,7 +277,7 @@ public:
             << s.imu.roll_deg << "," << s.imu.pitch_deg << "," << s.imu.yaw_deg << ","
             << s.imu.q_wb_zu_w << "," << s.imu.q_wb_zu_x << ","
             << s.imu.q_wb_zu_y << "," << s.imu.q_wb_zu_z
-            << "\n" << std::setprecision(clock_precision);
+            << "\n";
     }
 
     void flush() { ofs.flush(); }
