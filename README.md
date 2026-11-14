@@ -9,15 +9,21 @@ The project includes:
 
 ## Results
 
-[Release 1.2.3](https://github.com/bareboat-necessities/oceanography-waves-lib/releases/tag/v1.2.3) includes all five simulation datasets, SVG/PGF chart archives, and all PDF documentation.
+[Release 1.3.1](https://github.com/bareboat-necessities/oceanography-waves-lib/releases/tag/v1.3.1) includes all nine simulation datasets with corrected 200 Hz timestamps, SVG/PGF chart archives, and all PDF documentation.
 
-- [Vessel RAO chart PDF](https://github.com/bareboat-necessities/oceanography-waves-lib/releases/download/v1.2.3/wave_sim_charts_vessel_rao_28ft.pdf)
-- [Vessel RAO SVG/PGF charts](https://github.com/bareboat-necessities/oceanography-waves-lib/releases/download/v1.2.3/plot-files-vessel-rao-28ft.zip)
-- [Vessel RAO simulation CSVs](https://github.com/bareboat-necessities/oceanography-waves-lib/releases/download/v1.2.3/sim-data-files-vessel-rao-28ft.zip)
+- [Vessel RAO chart PDF](https://github.com/bareboat-necessities/oceanography-waves-lib/releases/download/v1.3.1/wave_sim_charts_vessel_rao_28ft.pdf)
+- [Vessel RAO SVG/PGF charts](https://github.com/bareboat-necessities/oceanography-waves-lib/releases/download/v1.3.1/plot-files-vessel-rao-28ft.zip)
+- [Vessel RAO simulation CSVs](https://github.com/bareboat-necessities/oceanography-waves-lib/releases/download/v1.3.1/sim-data-files-vessel-rao-28ft.zip)
 
-- [34 ft RAO simulation CSVs](https://github.com/bareboat-necessities/oceanography-waves-lib/releases/download/v1.2.3/sim-data-files-vessel-rao-34ft.zip)
-- [42 ft RAO simulation CSVs](https://github.com/bareboat-necessities/oceanography-waves-lib/releases/download/v1.2.3/sim-data-files-vessel-rao-42ft.zip)
-- [50 ft RAO simulation CSVs](https://github.com/bareboat-necessities/oceanography-waves-lib/releases/download/v1.2.3/sim-data-files-vessel-rao-50ft.zip)
+- [34 ft RAO simulation CSVs](https://github.com/bareboat-necessities/oceanography-waves-lib/releases/download/v1.3.1/sim-data-files-vessel-rao-34ft.zip)
+- [42 ft RAO simulation CSVs](https://github.com/bareboat-necessities/oceanography-waves-lib/releases/download/v1.3.1/sim-data-files-vessel-rao-42ft.zip)
+- [50 ft RAO simulation CSVs](https://github.com/bareboat-necessities/oceanography-waves-lib/releases/download/v1.3.1/sim-data-files-vessel-rao-50ft.zip)
+
+- [Surface simulation CSVs](https://github.com/bareboat-necessities/oceanography-waves-lib/releases/download/v1.3.1/sim-data-files.zip)
+- [28 ft moving vessel CSVs, 5 kn](https://github.com/bareboat-necessities/oceanography-waves-lib/releases/download/v1.3.1/sim-data-files-vessel-rao-28ft-5kn.zip)
+- [34 ft moving vessel CSVs, 5 kn](https://github.com/bareboat-necessities/oceanography-waves-lib/releases/download/v1.3.1/sim-data-files-vessel-rao-34ft-5kn.zip)
+- [42 ft moving vessel CSVs, 5 kn](https://github.com/bareboat-necessities/oceanography-waves-lib/releases/download/v1.3.1/sim-data-files-vessel-rao-42ft-5kn.zip)
+- [50 ft moving vessel CSVs, 5 kn](https://github.com/bareboat-necessities/oceanography-waves-lib/releases/download/v1.3.1/sim-data-files-vessel-rao-50ft-5kn.zip)
 
 The vessel charts cover all five wave families and all four incident heights, including H=4 m. Surface and vessel charts are labeled and packaged separately. A versioned release is published only after tests, full simulation audits, all five plotting jobs and all PDF builds succeed.
 
@@ -123,6 +129,20 @@ The underway model samples the incident wave phase along the prescribed track
 and evaluates the existing estimated RAO at the signed encounter frequency and
 instantaneous heading. See [moving-vessel equations and scope](doc/vessel-rao.md#moving-vessel-preset-five-knots-and-slow-steering).
 
+All generated time-series CSVs use an integer sample index at **200 Hz**:
+`t = sample_index / 200.0`, with no accumulated timestep error. The time column
+uses 17 significant digits so its double value survives CSV parsing exactly,
+including after 1,000 seconds. Decimal text may expose the binary representation
+(e.g. `0.0050000000000000001`); this is lossless serialization, not clock jitter.
+Fenton retains its two-sample startup and inclusive endpoint: `0.010` through
+`1200.000` (239,999 rows); other models run from `0` through `1199.995`
+(240,000 rows). Surface, stationary vessel and moving vessel clocks agree.
+Packaging rejects incorrect clocks; CI also reads all nine resulting ZIPs to
+verify every timestamp and row count. The ZIP members preserve the CSV bytes.
+Older release archives retain their original timestamps; use version 1.3.1 or
+later for the corrected clocks. Re-labeling old rows cannot repair the Fenton
+integration clock; regenerate the simulations.
+
 ### 3) Build plotting helper (C++)
 
 ```bash
@@ -215,7 +235,7 @@ The standard generation and packaging workflow produces separate
 `sim-data-files-vessel-rao-34ft.zip`, `sim-data-files-vessel-rao-42ft.zip`, and
 `sim-data-files-vessel-rao-50ft.zip` with the same CSV filenames and columns as
 the 28 ft ZIP. Each size also has a chart ZIP, a PDF, and a full-record audit
-in CI artifacts and release 1.2.3. Existing release 1.2.1 is
+in CI artifacts and release 1.3.1. Existing release 1.2.1 is
 immutable and contains only the original surface and 28 ft datasets.
 
 See [vessel preset parameters and assumptions](doc/vessel-rao.md#additional-34-ft-42-ft-and-50-ft-presets).

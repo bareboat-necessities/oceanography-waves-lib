@@ -28,8 +28,8 @@
 #include "RegularWaveHarmonics.h"
 
 // Experiment Config
-static constexpr float SAMPLE_RATE_HZ  = 200.0f;
-static constexpr float DELTA_T         = 1.0f / SAMPLE_RATE_HZ;
+static constexpr double SAMPLE_RATE_HZ = 200.0;
+static constexpr double DELTA_T = 1.0 / SAMPLE_RATE_HZ;
 static constexpr float TEST_DURATION_S = 20 * 60.0f;    // 20 minutes
 
 // Example test cases
@@ -198,7 +198,7 @@ static std::vector<Wave_Data_Sample> sample_fenton(
     auto fenton_params = FentonWave<ORDER>::infer_fenton_parameters_from_amplitude(
         wp.height / 2.0f, 200.0f, 2.0f * M_PI / wp.period, wp.phase);
 
-    WaveSurfaceTracker<ORDER> fenton_tracker(
+    WaveSurfaceTracker<ORDER, double> fenton_tracker(
         fenton_params.height,
         fenton_params.depth,
         fenton_params.length,
@@ -207,9 +207,9 @@ static std::vector<Wave_Data_Sample> sample_fenton(
         0.1f     // drag coeff
     );
 
-    auto callback = [&](float time, float dt, float elevation,
-                        float vertical_velocity, float vertical_acceleration,
-                        float x, float vx) {
+    auto callback = [&](double time, double dt, double elevation,
+                        double vertical_velocity, double vertical_acceleration,
+                        double x, double vx) {
         (void)dt; (void)x; (void)vx;
         Wave_Data_Sample out{};
         out.time        = time;
@@ -254,8 +254,8 @@ static void run_vessel_scenario(WaveType type, const WaveParameters& wp, double 
     const VesselRao vessel(harmonics,parameters);
     const MovingVesselRao moving_vessel(harmonics,parameters);
     const auto filename=WaveFileNaming::generate(FileKind::Data,type,wp);
-    // Preserve the existing clock format; retain float round-trip precision
-    // in underway state columns even after kilometres of forward travel.
+    // Retain float round-trip precision in underway state columns even
+    // after kilometres of forward travel; timestamps always round-trip double.
     WaveDataCSVWriter writer(filename,false,moving ? 9 : 6);
     writer.write_header();
     const auto write_sample = [&](double t) {
@@ -271,13 +271,12 @@ static void run_vessel_scenario(WaveType type, const WaveParameters& wp, double 
         writer.write(sample);
     };
     if (type==WaveType::FENTON) {
-        // Preserve the existing tracker's float clock and skipped initial samples.
-        for (float t=0; t<=static_cast<float>(duration); t+=DELTA_T)
-            if (t>DELTA_T) write_sample(t);
+        // Same startup and inclusive endpoint as the surface tracker.
+        for (int step=2; step/SAMPLE_RATE_HZ<=duration; ++step)
+            write_sample(step/SAMPLE_RATE_HZ);
     } else {
-        const int steps=static_cast<int>(std::round(duration/DELTA_T));
-        double t=0;
-        for (int step=0; step<steps; ++step,t+=DELTA_T) write_sample(t);
+        const int steps=static_cast<int>(std::round(duration*SAMPLE_RATE_HZ));
+        for (int step=0; step<steps; ++step) write_sample(step/SAMPLE_RATE_HZ);
     }
     writer.close();
     std::cout << "Wrote vessel RAO " << filename << "\n";
@@ -301,15 +300,14 @@ static void run_one_scenario(WaveType waveType, const WaveParameters &wp,
     WaveDataCSVWriter writer(filename);
     writer.write_header();
 
-    double sim_t = 0.0;
-    int total_steps = static_cast<int>(std::round(duration / DELTA_T));
+    int total_steps = static_cast<int>(std::round(duration * SAMPLE_RATE_HZ));
 
     if (waveType == WaveType::GERSTNER) {
         TrochoidalWave<float> trocho(wp.height / 2.0f, wp.period, wp.phase);
         for (int step = 0; step < total_steps; ++step) {
+            const double sim_t = step / SAMPLE_RATE_HZ;
             auto samp = sample_gerstner(sim_t, trocho);
             writer.write(samp);
-            sim_t += DELTA_T;
         }
         writer.close();
     }
@@ -319,9 +317,9 @@ static void run_one_scenario(WaveType waveType, const WaveParameters &wp,
         auto jonswap_model = std::make_unique<Jonswap3dStokesWaves<128>>(
             wp.height, wp.period, dirDist, 0.02, 0.8, 3.3, g_std, GLOBAL_SEED);
         for (int step = 0; step < total_steps; ++step) {
+            const double sim_t = step / SAMPLE_RATE_HZ;
             auto samp = sample_jonswap(sim_t, *jonswap_model);
             writer.write(samp);
-            sim_t += DELTA_T;
         }
         writer.close();
         export_spectrum(wp, WaveType::JONSWAP, *jonswap_model);
@@ -337,9 +335,9 @@ static void run_one_scenario(WaveType waveType, const WaveParameters &wp,
         PMStokesN3dWaves<128, 3> waveModel(
             wp.height, wp.period, dirDist, 0.02, 0.8, g_std, GLOBAL_SEED);
         for (int step = 0; step < total_steps; ++step) {
+            const double sim_t = step / SAMPLE_RATE_HZ;
             auto samp = sample_pmstokes(sim_t, waveModel);
             writer.write(samp);
-            sim_t += DELTA_T;
         }
         writer.close();
         export_spectrum(wp, WaveType::PMSTOKES, waveModel);
@@ -347,9 +345,9 @@ static void run_one_scenario(WaveType waveType, const WaveParameters &wp,
     else if (waveType == WaveType::CNOIDAL) {
         CnoidalWave<float> cnoidal(200.0f, wp.height / 2.0f, wp.period, 0.0f, g_std);
         for (int step = 0; step < total_steps; ++step) {
+            const double sim_t = step / SAMPLE_RATE_HZ;
             auto samp = sample_cnoidal(sim_t, cnoidal);
             writer.write(samp);
-            sim_t += DELTA_T;
         }
         writer.close();
     }

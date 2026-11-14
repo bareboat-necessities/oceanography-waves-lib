@@ -57,7 +57,7 @@ def check():
                                for i, c in enumerate("xyz")) < 2e-4, path.name
         # Auxiliary plotting tables must also survive a drop-in replacement.
         (root / "fenton_aux.csv").write_text("x,eta\n0,1\n")
-        paths = packaging.package(root)
+        paths = packaging.package(root, duration=0.05)
         assert len(paths) == 9
         assert {p.name for p in paths if "5kn" in p.name} == {
             f"sim-data-files-vessel-rao-{feet}ft-5kn.zip" for feet in (28, 34, 42, 50)}
@@ -66,13 +66,29 @@ def check():
                 assert a.namelist() == b.namelist()
                 assert all("/" not in name for name in b.namelist())
                 for name in b.namelist():
+                    if name.startswith("wave_data_"):
+                        packaging.validate_timestamps(iter(b.read(name).decode().splitlines()), name, 0.05)
+                        assert b.read(name) == (root / vessel_zip.stem.removeprefix("sim-data-files-") / name).read_bytes()
                     assert a.read(name).splitlines()[0] == b.read(name).splitlines()[0]
                     if not name.startswith("wave_data_"):
                         assert a.read(name) == b.read(name), name
+        # A valid-looking schema must not hide quantized or drifting clocks.
+        corrupt = next(response.glob("wave_data_gerstner_*.csv"))
+        saved = corrupt.read_text()
+        rows = saved.splitlines(keepends=True)
+        rows[2] = "0," + rows[2].partition(",")[2]  # duplicate second sample
+        corrupt.write_text("".join(rows))
+        try:
+            packaging.package(root, duration=0.05)
+        except ValueError as error:
+            assert "time" in str(error)
+        else:
+            raise AssertionError("Packaging accepted a duplicate timestamp")
+        corrupt.write_text(saved)
         missing = next(response.glob("wave_data_*.csv"))
         missing.unlink()
         try:
-            packaging.package(root)
+            packaging.package(root, duration=0.05)
         except ValueError:
             pass
         else:

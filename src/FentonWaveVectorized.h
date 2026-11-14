@@ -1,4 +1,5 @@
 #pragma once
+#include <cstdint>
 
 /*
    Copyright 2025, Mikhail Grushinskiy
@@ -788,7 +789,12 @@ class EIGEN_ALIGN_MAX WaveSurfaceTracker {
       // Initialize vertical velocity
       Real prev_z_dot = wave.surface_time_derivative(x, 0) + wave.surface_slope(x, 0) * vx;
 
-      while (t <= duration) {
+      // Derive time from an integer sample index, never accumulate float dt.
+      const double sample_rate = 1.0 / static_cast<double>(dt);
+      for (std::uint64_t step = 0; ; ++step) {
+        const double sample_time = step / sample_rate;
+        if (sample_time > static_cast<double>(duration)) break;
+        t = static_cast<Real>(sample_time);
         // Compute current vertical displacement on wave surface
         Real z = wave.surface_elevation(x, t);
 
@@ -811,7 +817,6 @@ class EIGEN_ALIGN_MAX WaveSurfaceTracker {
         // Integrate horizontal position and velocity with RK4
         rk4_step(x, vx, t, dt);
 
-        t += dt;
       }
     }
 

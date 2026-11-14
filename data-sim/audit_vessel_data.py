@@ -6,6 +6,7 @@ import hashlib
 import math
 import sys
 from pathlib import Path
+from timestamp_contract import validate_timestamps
 
 
 def audit(directory, output):
@@ -16,6 +17,8 @@ def audit(directory, output):
     writer.writerow(["file", "samples", "max_acc_norm_mps2", "above_g_samples",
                      "max_abs_roll_deg", "max_abs_pitch_deg", "sha256"])
     for path in files:
+        with path.open() as source:
+            validate_timestamps(source, path.name, 1200)
         count = above = 0
         peak = roll = pitch = 0.0
         digest = hashlib.sha256()
@@ -35,7 +38,7 @@ def audit(directory, output):
                 roll = max(roll, abs(values["roll_deg"]))
                 pitch = max(pitch, abs(values["pitch_deg"]))
                 count += 1
-        expected = 239795 if path.name.startswith("wave_data_fenton_") else 240000
+        expected = 239999 if path.name.startswith("wave_data_fenton_") else 240000
         if count != expected:
             raise ValueError(f"Incomplete full record: {path.name}: {count} rows, expected {expected}")
         writer.writerow([path.name, count, f"{peak:.12g}", above,
