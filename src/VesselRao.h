@@ -87,11 +87,19 @@ public:
 
     // Translation: m/m. Rotation: rad/m. Convention Re[H a exp(i phase-i omega t)].
     Transfer transfer(double omega, double k, double direction) const {
-        if (!(std::isfinite(omega) && omega >= 0 && std::isfinite(k) && k >= 0 &&
-              std::isfinite(direction)))
+        if (!(std::isfinite(omega) && omega >= 0))
+            throw std::invalid_argument("VesselRao: invalid frequency");
+        return encounterTransfer(omega,k,direction,p_.heading);
+    }
+
+    // Same estimated response at an instantaneous heading and signed encounter
+    // frequency. The wave number remains the incident spatial wave number.
+    Transfer encounterTransfer(double omega, double k, double direction, double heading) const {
+        if (!(std::isfinite(omega) && std::isfinite(k) && k >= 0 &&
+              std::isfinite(direction) && std::isfinite(heading)))
             throw std::invalid_argument("VesselRao: invalid frequency, wave number or direction");
         const std::complex<double> i(0,1);
-        const double beta=direction-p_.heading, c=std::cos(beta), s=std::sin(beta);
+        const double beta=direction-heading, c=std::cos(beta), s=std::sin(beta);
         // Smooth spatial averaging with the second moment of a rectangular waterplane.
         const double qx=k*p_.waterline_length*c, qy=k*p_.beam*s;
         const double footprint=std::exp(-(qx*qx+qy*qy)/24.0);
@@ -102,7 +110,7 @@ public:
                 footprint*oscillator(omega,p_.heave_period,p_.heave_damping),
                 i*k*s*footprint*oscillator(omega,p_.roll_period,p_.roll_damping),
                 -i*k*c*footprint*oscillator(omega,p_.pitch_period,p_.pitch_damping),
-                0.0}; // heading held fixed: no wave yaw, sailing trim or forward speed
+                0.0}; // no wave-induced yaw or sailing trim
     }
 
     State state(double t) const {

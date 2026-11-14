@@ -23,10 +23,12 @@ def check():
         original = sorted(root.glob("wave_data_*.csv"))
         assert len(original) == 20
         prior = None
-        for feet in (28, 34, 42, 50):
-            response = root / f"vessel-rao-{feet}ft"
+        for feet, moving in ((feet, moving) for moving in (False, True) for feet in (28, 34, 42, 50)):
+            suffix = "-5kn" if moving else ""
+            response = root / f"vessel-rao-{feet}ft{suffix}"
             subprocess.run([str(executable), "--vessel-length-ft", str(feet), "--duration", "0.05",
-                            "--output-dir", str(response)], check=True, stdout=subprocess.DEVNULL)
+                            "--output-dir", str(response)] + (["--vessel-moving"] if moving else []),
+                           check=True, stdout=subprocess.DEVNULL)
             assert len(list(response.glob("*.csv"))) == 28
             signature = (response / original[0].name).read_bytes()
             assert signature != prior, "Different hulls must produce different motion"
@@ -39,6 +41,9 @@ def check():
                 assert any(a != b for a, b in zip(source, vessel)), path.name
                 for row in vessel:
                     assert len(row) == 23 and all(math.isfinite(float(v)) for v in row.values()), path.name
+                    if moving:
+                        assert abs(float(row["yaw_deg"])-3*math.sin(2*math.pi*float(row["time"])/120)) < 1e-7
+                        assert float(row["vel_x"]) > 0, "Moving vessel must advance northward"
                     w, x, y, z = [float(row[f"q_wb_zu_{c}"]) for c in "wxyz"]
                     assert abs(w*w+x*x+y*y+z*z-1) < 3e-6, path.name
                     # Independently rotate specific force back into world axes.
@@ -53,7 +58,9 @@ def check():
         # Auxiliary plotting tables must also survive a drop-in replacement.
         (root / "fenton_aux.csv").write_text("x,eta\n0,1\n")
         paths = packaging.package(root)
-        assert len(paths) == 5
+        assert len(paths) == 9
+        assert {p.name for p in paths if "5kn" in p.name} == {
+            f"sim-data-files-vessel-rao-{feet}ft-5kn.zip" for feet in (28, 34, 42, 50)}
         for vessel_zip in paths[1:]:
             with zipfile.ZipFile(paths[0]) as a, zipfile.ZipFile(vessel_zip) as b:
                 assert a.namelist() == b.namelist()
@@ -70,7 +77,7 @@ def check():
             pass
         else:
             raise AssertionError("Packaging silently accepted a missing vessel record")
-    print("PASS: all 80 vessel records, clocks, IMU frames, and replacement archive members")
+    print("PASS: all 160 vessel records, clocks, IMU frames, heading, and nine replacement archives")
 
 
 if __name__ == "__main__":

@@ -96,12 +96,32 @@ An additional estimated **28-foot fin-keel sailboat RAO** simulation is availabl
 
 It writes vessel CG motion and consistent IMU/attitude references into
 `vessel-rao-28ft/`, using the original CSV filenames and columns. Running
-`bash gen_sim_data.sh` generates the surface dataset and all four vessel sizes; `python3 package_sim_data.py`
+`bash gen_sim_data.sh` generates the surface dataset and all four vessel sizes at rest and underway; `python3 package_sim_data.py`
 packages them as `sim-data-files.zip` and **`sim-data-files-vessel-rao-<size>ft.zip`**
 with identical member names. CI also includes the existing ancillary plotting
 CSVs and uploads the additional ZIP as its own artifact/release asset.
 See [vessel RAO parameters, equations and scope](doc/vessel-rao.md). The preset
 is an approximate stationary sailboat response, not measured hull data.
+
+For a boat moving at **5 kn about north with a slow ±3° heading oscillation**:
+
+```bash
+./waves_sim --vessel-moving --vessel-length-ft 28
+```
+
+The heading is `3° sin(2πt / 120 s)`; speed is 5 kn along the instantaneous
+heading. World +x is north, +y west, and +z up. The output directory is
+`vessel-rao-28ft-5kn/`. Choose 34, 42, or 50 for the other hull presets.
+The generator/package scripts also produce four separate archives:
+**`sim-data-files-vessel-rao-<size>ft-5kn.zip`**. They retain the original
+member names, schemas, incident spectra and clocks. Positions and velocities
+include the vessel's travel; accelerations and IMU readings include steering
+and wave motion. These additional simulation ZIPs and their audits are required
+release assets starting with version 1.3.0.
+
+The underway model samples the incident wave phase along the prescribed track
+and evaluates the existing estimated RAO at the signed encounter frequency and
+instantaneous heading. See [moving-vessel equations and scope](doc/vessel-rao.md#moving-vessel-preset-five-knots-and-slow-steering).
 
 ### 3) Build plotting helper (C++)
 

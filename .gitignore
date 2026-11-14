@@ -45,7 +45,8 @@
 /tests/tests-sanitize
 /tests/reference_acceleration_audit
 /data-sim/waves_sim
-/data-sim/vessel-rao-28ft/
+/data-sim/vessel-rao-*ft/
+/data-sim/vessel-rao-*ft-5kn/
 /data-sim/*.csv
 /data-sim/*.zip
 /build/
