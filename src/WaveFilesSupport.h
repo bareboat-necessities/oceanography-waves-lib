@@ -242,7 +242,10 @@ private:
 // Wave data writer
 class WaveDataCSVWriter {
 public:
-    explicit WaveDataCSVWriter(const std::string &filename, bool append = false) {
+    explicit WaveDataCSVWriter(const std::string &filename, bool append = false,
+                               int state_precision = 6) : state_precision_(state_precision) {
+        if (state_precision < 1 || state_precision > 17)
+            throw std::invalid_argument("CSV state precision must be between 1 and 17");
         if (append) ofs.open(filename, std::ios::app);
         else ofs.open(filename, std::ios::trunc);
         if (!ofs.is_open()) throw std::runtime_error("Failed to open " + filename);
@@ -261,7 +264,9 @@ public:
     }
 
     void write(const Wave_Data_Sample &s) {
+        const auto clock_precision=ofs.precision();
         ofs << s.time << ","
+            << std::setprecision(state_precision_)
             << s.wave.disp_x << "," << s.wave.disp_y << "," << s.wave.disp_z << ","
             << s.wave.vel_x  << "," << s.wave.vel_y  << "," << s.wave.vel_z << ","
             << s.wave.acc_x  << "," << s.wave.acc_y  << "," << s.wave.acc_z << ","
@@ -270,7 +275,7 @@ public:
             << s.imu.roll_deg << "," << s.imu.pitch_deg << "," << s.imu.yaw_deg << ","
             << s.imu.q_wb_zu_w << "," << s.imu.q_wb_zu_x << ","
             << s.imu.q_wb_zu_y << "," << s.imu.q_wb_zu_z
-            << "\n";
+            << "\n" << std::setprecision(clock_precision);
     }
 
     void flush() { ofs.flush(); }
@@ -278,6 +283,7 @@ public:
 
 private:
     std::ofstream ofs;
+    int state_precision_;
 };
 
 // Wave data reader

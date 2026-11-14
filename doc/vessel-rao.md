@@ -366,6 +366,9 @@ Quaternion and Euler references describe the same complete vessel attitude.
 All existing units, column order, incident spectra, filenames, sample clocks,
 20-minute duration and 200 Hz sampling are retained, including the existing
 Fenton float-clock convention.
+Underway state columns use nine significant digits to retain float precision
+after kilometres of travel; the timestamp format and all stationary CSV bytes
+are unchanged.
 
 `gen_sim_data.sh` generates all eight vessel directories. Packaging requires
 all nine datasets (surface, four stationary hulls, four moving hulls). In

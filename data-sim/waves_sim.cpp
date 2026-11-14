@@ -254,7 +254,9 @@ static void run_vessel_scenario(WaveType type, const WaveParameters& wp, double 
     const VesselRao vessel(harmonics,parameters);
     const MovingVesselRao moving_vessel(harmonics,parameters);
     const auto filename=WaveFileNaming::generate(FileKind::Data,type,wp);
-    WaveDataCSVWriter writer(filename);
+    // Preserve the existing clock format; retain float round-trip precision
+    // in underway state columns even after kilometres of forward travel.
+    WaveDataCSVWriter writer(filename,false,moving ? 9 : 6);
     writer.write_header();
     const auto write_sample = [&](double t) {
         const auto state=moving ? moving_vessel.state(t) : vessel.state(t);
