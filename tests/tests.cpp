@@ -19,6 +19,7 @@
 #include "Jonswap3dStokesWaves.h"
 #include "PiersonMoskowitzStokes3D_Waves.h"
 #include "VesselRao.h"
+#include "MovingVesselRao.h"
 #include "../data-sim/RegularWaveHarmonics.h"
 
 namespace {
@@ -224,6 +225,7 @@ int main() {
   const std::vector<std::pair<std::string, std::function<void()>>> tests = {
       {"vessel RAO limits, symmetry and phase", test_vessel_transfer},
       {"vessel rigid-body kinematics and IMU", test_vessel_kinematics},
+      {"moving vessel track, encounter response and IMU", test_moving_vessel},
       {"incident wave adapters", test_incident_wave_adapters},
       {"monochromatic Lagrangian limit", test_monochromatic_particle},
       {"collinear and degenerate second-order pairs", test_collinear_and_degenerate_pairs},

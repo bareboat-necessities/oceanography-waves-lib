@@ -302,3 +302,83 @@ done
 
 Dependencies: C++17, Eigen, Python with NumPy, pandas and Matplotlib; XeLaTeX
 for PGF export. Use `--formats png svg` if LaTeX is unavailable.
+
+## Moving vessel preset: five knots and slow steering
+
+`waves_sim --vessel-moving --vessel-length-ft 28` selects a separate underway
+case (also available for 34, 42 and 50 ft). The original stationary cases retain
+their existing calculations. The prescribed track uses world +x = north,
++y = west, +z = up, so its mean heading is the existing zero heading. Positive
+heading is toward port/west, rather than a clockwise compass bearing.
+
+The speed along the instantaneous heading is exactly 5 kn = 2.572222222… m/s:
+
+```math
+\psi(t)=3^\circ\sin(2\pi t/120\,\mathrm{s}),\qquad
+\dot{\mathbf X}=U(\cos\psi,\sin\psi,0),\qquad
+\ddot{\mathbf X}=U\dot\psi(-\sin\psi,\cos\psi,0).
+```
+
+The 120-second cycle has a maximum yaw rate of 0.15708 deg/s. Over a complete
+cycle westward travel cancels; northward progress averages about 4.9966 kn.
+The Fourier/Bessel integral of the velocity defines position from X(0)=0,
+with no accumulated integration drift. The wave-free track travels at 5 kn;
+the superposed wave response also contributes to the reported total velocity.
+
+For each incident harmonic, evaluate phase **along this track**, rather than
+replacing omega by a time-varying frequency multiplied by time:
+
+```math
+\theta_j(t)=\mathbf k_j\cdot\mathbf X(t)-\omega_jt+\phi_j,\qquad
+\omega_{e,j}=\omega_j-\mathbf k_j\cdot\dot{\mathbf X}(t).
+```
+
+This encounter relation is described in the
+[US Naval Academy ship-dynamics notes, section on encounter frequency](https://www.usna.edu/NAOE/_files/documents/Courses/EN455/EN455_Course_Notes_Chapter_4_revisedAY21.pdf).
+The sign is retained, including overtaking following waves. The incident wave
+number, spatial averaging and incident spectrum do not change. The existing
+response equations use the instantaneous relative propagation direction and
+signed encounter frequency in their low-pass and oscillator factors.
+Translations are rotated to world axes before differentiating.
+
+This is a **quasi-steady extension of the existing estimated RAO surrogate**.
+It does not supply measured forward-speed RAOs, added-mass/damping corrections,
+steering dynamics, speed-dependent trim or propulsion effects. Actual RAOs can
+depend independently on forward speed, as discussed in
+[Orcina's RAO documentation](https://www.orcina.com/webhelp/OrcaFlex/Content/html/Vesseltheory,RAOsandphases.htm).
+The slow prescribed steering is superposed on the wave response; wave-induced
+yaw remains zero.
+
+For a complex world response coefficient H(psi), the implementation includes
+all derivatives of `Re[H exp(i theta)]`: changing response amplitude and phase,
+encounter frequency, encounter-frequency derivative, and rotating vessel axes.
+Only the slowly varying H derivatives use a centered heading difference of
+0.0001 rad; the wave phase derivatives are analytic. Body gyro readings use
+all three Euler rates of `Rz(yaw) Ry(pitch) Rx(roll)`. Specific force includes
+both the turn acceleration and wave acceleration. Tests independently
+check displacement/velocity/acceleration and attitude/gyro derivatives through
+the end of a 20-minute record, plus closed-form signed encounter cases.
+
+The CSV `disp_*` columns include travel from the initial track origin, and
+`vel_*` includes forward speed. They therefore are not bounded wave-only
+excursions. `acc_*` excludes gravity and includes turn and wave accelerations.
+Quaternion and Euler references describe the same complete vessel attitude.
+All existing units, column order, incident spectra, filenames, sample clocks,
+20-minute duration and 200 Hz sampling are retained, including the existing
+Fenton float-clock convention.
+
+`gen_sim_data.sh` generates all eight vessel directories. Packaging requires
+all nine datasets (surface, four stationary hulls, four moving hulls). In
+addition to the original archives it generates:
+
+- `sim-data-files-vessel-rao-28ft-5kn.zip`
+- `sim-data-files-vessel-rao-34ft-5kn.zip`
+- `sim-data-files-vessel-rao-42ft-5kn.zip`
+- `sim-data-files-vessel-rao-50ft-5kn.zip`
+
+These ZIPs have the same flat CSV members as the surface/stationary archives,
+including unchanged incident-wave plotting tables. CI audits all 20 full
+records for every moving hull, uploads the ZIPs with the simulation artifacts,
+and requires the four new ZIPs and four new audit CSVs in the version 1.3.0
+release manifest. Existing chart/PDF assets continue to describe the stationary
+cases; no underway charts are substituted into them.

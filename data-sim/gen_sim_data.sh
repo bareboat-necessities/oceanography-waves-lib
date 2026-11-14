@@ -8,3 +8,6 @@ seq 0 3 | xargs -n1 -P4 ./waves_sim
 
 # Same incident cases, additional vessel response in a separate directory.
 printf '%s\n' 28 34 42 50 | xargs -n1 -P4 ./waves_sim --vessel-length-ft
+
+# Additional underway cases: 5 kn, northward mean heading, +/-3 deg / 120 s.
+printf '%s\n' 28 34 42 50 | xargs -n1 -P4 ./waves_sim --vessel-moving --vessel-length-ft

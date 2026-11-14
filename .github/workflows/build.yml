@@ -63,7 +63,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y make g++ libeigen3-dev
-      - name: Generate surface and all four vessel datasets
+      - name: Generate surface, stationary and moving vessel datasets
         run: |
           cd data-sim
           bash gen_sim_data.sh
@@ -78,6 +78,9 @@ jobs:
           python3 data-sim/audit_vessel_data.py data-sim/vessel-rao-28ft > vessel-rao-reference-audit.csv
           for feet in 34 42 50; do
             python3 data-sim/audit_vessel_data.py "data-sim/vessel-rao-${feet}ft" > "vessel-rao-${feet}ft-reference-audit.csv"
+          done
+          for feet in 28 34 42 50; do
+            python3 data-sim/audit_vessel_data.py "data-sim/vessel-rao-${feet}ft-5kn" > "vessel-rao-${feet}ft-5kn-reference-audit.csv"
           done
       - name: Package interchangeable simulation archives
         run: python3 data-sim/package_sim_data.py data-sim

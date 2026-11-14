@@ -10,19 +10,19 @@ def package(root):
     original = {p.name: p for p in root.glob("*.csv")}
     wave_names = {n for n in original if n.startswith(("wave_data_", "wave_spectrum_"))}
     variants = [("sim-data-files.zip", {})]
-    for feet in (28, 34, 42, 50):
-        vessel = root / f"vessel-rao-{feet}ft"
+    for feet, suffix in ((feet, suffix) for suffix in ("", "-5kn") for feet in (28, 34, 42, 50)):
+        vessel = root / f"vessel-rao-{feet}ft{suffix}"
         response = {p.name: p for p in vessel.glob("*.csv")}
         if not wave_names or set(response) != wave_names:
-            raise ValueError(f"{feet} ft vessel CSV members differ: missing={sorted(wave_names-set(response))}, "
+            raise ValueError(f"{feet} ft{suffix} vessel CSV members differ: missing={sorted(wave_names-set(response))}, "
                              f"extra={sorted(set(response)-wave_names)}")
         for name, path in response.items():
             with original[name].open() as a, path.open() as b:
                 if a.readline() != b.readline():
-                    raise ValueError(f"{feet} ft CSV schema differs: {name}")
+                    raise ValueError(f"{feet} ft{suffix} CSV schema differs: {name}")
             if name.startswith("wave_spectrum_") and original[name].read_bytes() != path.read_bytes():
-                raise ValueError(f"{feet} ft incident spectrum differs: {name}")
-        variants.append((f"sim-data-files-vessel-rao-{feet}ft.zip", response))
+                raise ValueError(f"{feet} ft{suffix} incident spectrum differs: {name}")
+        variants.append((f"sim-data-files-vessel-rao-{feet}ft{suffix}.zip", response))
     outputs = []
     for filename, overrides in variants:
         output = root / filename

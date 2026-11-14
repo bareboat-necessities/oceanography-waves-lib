@@ -76,6 +76,81 @@ void test_vessel_kinematics() {
     require(calm.gyro_body.isZero() && calm.acceleration.isZero(),"Calm sea has no dynamics");
 }
 
+void test_moving_vessel() {
+    const double pi=std::acos(-1.0), speed=5*1852.0/3600, yaw_amplitude=3*pi/180;
+    const VesselRao::Parameters p;
+    const MovingVesselRao calm({},p);
+    constexpr double dt=1e-4;
+    for (double t : {0.0,17.3,30.0,60.0,90.0,120.0,750.3,1199.9}) {
+        const auto path=calm.track(t), lo=calm.track(t-dt), hi=calm.track(t+dt);
+        require_near(path.velocity.norm(),speed,0,1e-14,"Prescribed speed is exactly five knots");
+        require_near(path.heading,yaw_amplitude*std::sin(2*pi*t/120),0,1e-14,
+                     "Heading oscillates +/-3 degrees around north every 120 seconds");
+        require(((hi.displacement-lo.displacement)/(2*dt)-path.velocity).norm()<2e-8,
+                "Integrated steering trajectory differentiates to prescribed velocity");
+        require(((hi.velocity-lo.velocity)/(2*dt)-path.acceleration).norm()<1e-10,
+                "Turn acceleration differentiates velocity");
+        const auto st=calm.state(t);
+        require((st.acceleration-path.acceleration).norm()<1e-14,"Calm sea retains turn acceleration");
+        require_near(st.gyro_body.z(),path.heading_rate,0,1e-14,"Calm sea gyro measures steering yaw rate");
+    }
+    require_near(calm.track(120).displacement.y(),0,0,1e-12,"No net westward drift over a steering cycle");
+    require(calm.track(120).displacement.x()>308,"Mean track is northward");
+
+    // Fixed heading gives a closed-form Doppler-shifted single-wave solution,
+    // including negative encounter frequency when overtaking following waves.
+    MovingVesselRao::Motion straight;
+    straight.heading_amplitude=0;
+    for (double omega : {1.1,5.0}) {
+        const double k=omega*omega/p.gravity, encounter=omega-k*speed;
+        const WaveHarmonic w{0.3,omega,k,0,0.7};
+        const MovingVesselRao vessel({w},p,straight);
+        const auto h=VesselRao({}).encounterTransfer(encounter,k,0,0);
+        const auto st=vessel.state(2.7);
+        const auto phase=std::polar(w.amplitude,w.phase-encounter*2.7);
+        const auto z=h[2]*phase;
+        require_near(st.displacement.z(),z.real(),0,1e-12,"Encounter phase uses incident k and moving position");
+        require_near(st.velocity.z(),encounter*z.imag(),0,1e-12,"Encounter velocity has the signed frequency");
+        require_near(st.acceleration.z(),-encounter*encounter*z.real(),0,1e-12,
+                     "Encounter acceleration uses encounter frequency squared");
+    }
+
+    const std::vector<WaveHarmonic> waves{{0.4,1.3,1.3*1.3/p.gravity,0.9,0.7},
+                                          {0.15,2.1,2.1*2.1/p.gravity,-0.5,1.8}};
+    for (int feet : {28,34,42,50}) {
+        auto hull=VesselRao::sailboat(feet);
+        hull.heading=0.4;
+        const MovingVesselRao vessel(waves,hull);
+        for (double t : {0.0,17.3,30.0,60.0,90.0,750.3,1199.9}) {
+            const auto st=vessel.state(t), lo=vessel.state(t-dt), hi=vessel.state(t+dt);
+            require(((hi.displacement-lo.displacement)/(2*dt)-st.velocity).norm()<1e-7,
+                    "Moving RAO velocity differentiates total displacement");
+            require(((hi.velocity-lo.velocity)/(2*dt)-st.acceleration).norm()<1e-7,
+                    "Moving RAO acceleration includes modulation and rotating-frame terms");
+            const Eigen::Matrix3d derivative=(hi.world_to_body-lo.world_to_body)/(2*dt);
+            const Eigen::Matrix3d skew=-derivative*st.world_to_body.transpose();
+            require((Eigen::Vector3d(skew(2,1),skew(0,2),skew(1,0))-st.gyro_body).norm()<1e-8,
+                    "Moving body gyro differentiates complete yaw-pitch-roll attitude");
+            require((st.world_to_body.transpose()*st.accel_body-Eigen::Vector3d(0,0,p.gravity)
+                     -st.acceleration).norm()<1e-12,"Underway specific force includes turning and waves");
+        }
+        auto stopped=straight;
+        stopped.speed=0;
+        const auto old=VesselRao(waves,hull).state(31.7);
+        const auto now=MovingVesselRao(waves,hull,stopped).state(31.7);
+        require((old.displacement-now.displacement).isZero() && (old.gyro_body-now.gyro_body).isZero(),
+                "Zero-speed, fixed-heading limit exactly preserves existing response");
+    }
+    for (double bad : {-1.0,std::numeric_limits<double>::infinity()}) {
+        auto invalid=straight;
+        invalid.speed=bad;
+        bool threw=false;
+        try { const MovingVesselRao vessel({},p,invalid); }
+        catch (const std::invalid_argument&) { threw=true; }
+        require(threw,"Invalid underway speed rejected");
+    }
+}
+
 void test_incident_wave_adapters() {
     auto elevation=[](const std::vector<WaveHarmonic>& waves,double x,double y,double t) {
         double eta=0;
