@@ -66,7 +66,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y make g++ libeigen3-dev
-      - name: Generate surface, stationary and moving vessel datasets
+      - name: Generate surface, stationary, northbound and southbound vessel datasets
         run: |
           cd data-sim
           bash gen_sim_data.sh
@@ -82,12 +82,14 @@ jobs:
           for feet in 34 42 50; do
             python3 data-sim/audit_vessel_data.py "data-sim/vessel-rao-${feet}ft" > "vessel-rao-${feet}ft-reference-audit.csv"
           done
-          for feet in 28 34 42 50; do
-            python3 data-sim/audit_vessel_data.py "data-sim/vessel-rao-${feet}ft-5kn" > "vessel-rao-${feet}ft-5kn-reference-audit.csv"
+          for suffix in 5kn 5kn-south; do
+            for feet in 28 34 42 50; do
+              python3 data-sim/audit_vessel_data.py "data-sim/vessel-rao-${feet}ft-${suffix}" > "vessel-rao-${feet}ft-${suffix}-reference-audit.csv"
+            done
           done
       - name: Package interchangeable simulation archives
         run: python3 data-sim/package_sim_data.py data-sim
-      - name: Verify exact clocks in all nine packaged ZIPs
+      - name: Verify exact clocks in all thirteen packaged ZIPs
         run: python3 data-sim/timestamp_contract.py data-sim/*.zip
       - uses: actions/upload-artifact@v4
         with:

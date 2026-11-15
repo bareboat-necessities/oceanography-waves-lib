@@ -47,6 +47,7 @@
 /data-sim/waves_sim
 /data-sim/vessel-rao-*ft/
 /data-sim/vessel-rao-*ft-5kn/
+/data-sim/vessel-rao-*ft-5kn-south/
 /data-sim/*.csv
 /data-sim/*.zip
 /build/

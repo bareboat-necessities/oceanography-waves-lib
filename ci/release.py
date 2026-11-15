@@ -20,9 +20,9 @@ ASSETS = (
     f'plot-files-vessel-rao-{feet}ft.zip',
     f'wave_sim_charts_vessel_rao_{feet}ft.pdf',
     f'vessel-rao-{feet}ft-reference-audit.csv',
-)) + tuple(name for feet in (28, 34, 42, 50) for name in (
-    f'sim-data-files-vessel-rao-{feet}ft-5kn.zip',
-    f'vessel-rao-{feet}ft-5kn-reference-audit.csv',
+)) + tuple(name for suffix in ('5kn', '5kn-south') for feet in (28, 34, 42, 50) for name in (
+    f'sim-data-files-vessel-rao-{feet}ft-{suffix}.zip',
+    f'vessel-rao-{feet}ft-{suffix}-reference-audit.csv',
 ))
 
 

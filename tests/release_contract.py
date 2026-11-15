@@ -32,6 +32,21 @@ class ReleaseTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 release.prepare(Path(temp))
 
+    def test_each_southbound_archive_and_audit_is_required(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            for name in release.ASSETS:
+                (root/name).write_bytes(b'test fixture')
+            for feet in (28, 34, 42, 50):
+                for name in (f'sim-data-files-vessel-rao-{feet}ft-5kn-south.zip',
+                             f'vessel-rao-{feet}ft-5kn-south-reference-audit.csv'):
+                    with self.subTest(asset=name):
+                        self.assertIn(name, release.ASSETS)
+                        (root/name).unlink()
+                        with self.assertRaisesRegex(ValueError, name):
+                            release.prepare(root)
+                        (root/name).write_bytes(b'test fixture')
+
     def test_complete_manifest_and_exact_commit_publication(self):
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)

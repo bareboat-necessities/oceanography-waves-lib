@@ -162,11 +162,11 @@ runs. Without `--output-dir`, vessel files go in `vessel-rao-28ft/` under the
 current directory, preventing default output from overwriting particle files.
 
 CI uploads the separate replacement ZIP on PRs. After all tests, chart jobs and PDF builds pass on main, the complete versioned
-release includes all five data archives, SVG/PGF chart archives and PDFs. Release
-1.2.3 is tagged `v1.2.3`; the RAO chart document is
+release includes all thirteen data archives, SVG/PGF chart archives and PDFs. Release
+1.4.0 is tagged `v1.4.0`; the RAO chart document is
 `wave_sim_charts_vessel_rao_28ft.pdf`. The packaging step
 rejects missing/extra wave files, schema changes, or changed incident spectra.
-`python3 tests/vessel_archive.py` checks all 80 vessel cases, exact time-column parity,
+`python3 tests/vessel_archive.py` checks all 240 vessel cases, exact time-column parity,
 finite data, IMU frame recovery, archive names and auxiliary-file preservation.
 
 ## Scope
@@ -310,24 +310,37 @@ for PGF export. Use `--formats png svg` if LaTeX is unavailable.
 ## Moving vessel preset: five knots and slow steering
 
 `waves_sim --vessel-moving --vessel-length-ft 28` selects a separate underway
-case (also available for 34, 42 and 50 ft). The original stationary cases retain
+case (also available for 34, 42 and 50 ft). Use `--vessel-moving-south` instead
+for the matching southbound case. The original stationary cases retain
 their existing calculations. The prescribed track uses world +x = north,
-+y = west, +z = up, so its mean heading is the existing zero heading. Positive
++y = west, +z = up, with mean heading 0 for north or pi for south. Positive
 heading is toward port/west, rather than a clockwise compass bearing.
 
 The speed along the instantaneous heading is exactly 5 kn = 2.572222222… m/s:
 
 ```math
-\psi(t)=3^\circ\sin(2\pi t/120\,\mathrm{s}),\qquad
+\psi(t)=\psi_0+3^\circ\sin(2\pi t/20\,\mathrm{s}),\qquad
 \dot{\mathbf X}=U(\cos\psi,\sin\psi,0),\qquad
 \ddot{\mathbf X}=U\dot\psi(-\sin\psi,\cos\psi,0).
 ```
 
-The 120-second cycle has a maximum yaw rate of 0.15708 deg/s. Over a complete
-cycle westward travel cancels; northward progress averages about 4.9966 kn.
+The 20-second cycle has a maximum yaw rate of 0.94248 deg/s. Over a complete
+cycle lateral travel cancels; progress along the selected north/south direction
+averages about 4.9966 kn.
 The Fourier/Bessel integral of the velocity defines position from X(0)=0,
 with no accumulated integration drift. The wave-free track travels at 5 kn;
 the superposed wave response also contributes to the reported total velocity.
+
+The incident wave directions remain unchanged: regular waves propagate north
+(0 degrees); JONSWAP and PM spectra have mean propagation directions of
++30 or -30 degrees. Thus the northbound preset gives following/stern-quartering
+seas and the southbound preset gives head/bow-quartering seas. The directional
+spectra retain their spreading, so individual components need not approach
+at exactly the mean angle. With straight southward travel and a northward
+harmonic, the encounter frequency is `omega + k U`, compared with
+`omega - k U` for northward travel. Steering varies the encounter angle around
+these cases. Changing the mean heading rotates the track and body frame;
+it does not rotate or regenerate the incident sea.
 
 For each incident harmonic, evaluate phase **along this track**, rather than
 replacing omega by a time-varying frequency multiplied by time:
@@ -368,24 +381,36 @@ The CSV `disp_*` columns include travel from the initial track origin, and
 excursions. `acc_*` excludes gravity and includes turn and wave accelerations.
 Quaternion and Euler references describe the same complete vessel attitude.
 All existing units, column order, incident spectra, filenames, sample clocks,
-20-minute duration and 200 Hz sampling are retained, including the existing
-Fenton float-clock convention.
+20-minute duration and 200 Hz sampling are retained, including Fenton's
+two-sample startup and inclusive endpoint. All timestamps use the corrected
+integer-index/double clock introduced in version 1.3.1.
 Underway state columns use nine significant digits to retain float precision
-after kilometres of travel; the timestamp format and all stationary CSV bytes
-are unchanged.
+after kilometres of travel. Southbound Euler yaw is continuous around 180
+degrees (177 to 183), rather than wrapped at 180; the quaternion describes the
+same attitude. Surface and stationary CSV calculations are unchanged. Starting
+with version 1.4.0, both underway presets use the 20-second steering cycle;
+older northbound release archives retain their original 120-second cycle.
 
-`gen_sim_data.sh` generates all eight vessel directories. Packaging requires
-all nine datasets (surface, four stationary hulls, four moving hulls). In
-addition to the original archives it generates:
+`gen_sim_data.sh` generates all twelve vessel directories. Packaging requires
+all thirteen datasets (surface, four stationary hulls, four northbound hulls,
+four southbound hulls). The northbound archives are:
 
 - `sim-data-files-vessel-rao-28ft-5kn.zip`
 - `sim-data-files-vessel-rao-34ft-5kn.zip`
 - `sim-data-files-vessel-rao-42ft-5kn.zip`
 - `sim-data-files-vessel-rao-50ft-5kn.zip`
 
+The separate southbound archives are:
+
+- `sim-data-files-vessel-rao-28ft-5kn-south.zip`
+- `sim-data-files-vessel-rao-34ft-5kn-south.zip`
+- `sim-data-files-vessel-rao-42ft-5kn-south.zip`
+- `sim-data-files-vessel-rao-50ft-5kn-south.zip`
+
 These ZIPs have the same flat CSV members as the surface/stationary archives,
 including unchanged incident-wave plotting tables. CI audits all 20 full
-records for every moving hull, uploads the ZIPs with the simulation artifacts,
-and requires the four new ZIPs and four new audit CSVs in the version 1.3.0
-release manifest. Existing chart/PDF assets continue to describe the stationary
+records for every hull/direction, uploads the ZIPs with the simulation artifacts,
+and requires the four southbound ZIPs and four southbound audit CSVs in the
+version 1.4.0 release manifest, alongside the northbound assets introduced in
+1.3.0. Existing chart/PDF assets continue to describe the stationary
 cases; no underway charts are substituted into them.

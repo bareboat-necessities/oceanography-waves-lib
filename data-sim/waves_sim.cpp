@@ -233,7 +233,8 @@ static Wave_Data_Sample sample_cnoidal(double t, CnoidalWave<float> &wave) {
 }
 
 // Additional vessel response; wave and particle simulation remain separate.
-static void run_vessel_scenario(WaveType type, const WaveParameters& wp, double duration, int vessel_feet, bool moving) {
+static void run_vessel_scenario(WaveType type, const WaveParameters& wp, double duration,
+                                int vessel_feet, bool moving, double vessel_heading) {
     std::vector<WaveHarmonic> harmonics;
     if (type==WaveType::JONSWAP || type==WaveType::PMSTOKES) {
         auto dist=std::make_shared<Cosine2sRandomizedDistribution>(
@@ -250,7 +251,8 @@ static void run_vessel_scenario(WaveType type, const WaveParameters& wp, double 
     } else {
         harmonics=regularWaveHarmonics(type,wp);
     }
-    const auto parameters=VesselRao::sailboat(vessel_feet);
+    auto parameters=VesselRao::sailboat(vessel_feet);
+    parameters.heading=vessel_heading;
     const VesselRao vessel(harmonics,parameters);
     const MovingVesselRao moving_vessel(harmonics,parameters);
     const auto filename=WaveFileNaming::generate(FileKind::Data,type,wp);
@@ -284,7 +286,8 @@ static void run_vessel_scenario(WaveType type, const WaveParameters& wp, double 
 
 // Scenario Runner
 static void run_one_scenario(WaveType waveType, const WaveParameters &wp,
-                             bool vessel_rao, double duration, int vessel_feet, bool moving) {
+                             bool vessel_rao, double duration, int vessel_feet, bool moving,
+                             double vessel_heading) {
     WaveParameters wp_copy = wp;
     if (waveType == WaveType::GERSTNER ||
         waveType == WaveType::FENTON   ||
@@ -292,7 +295,7 @@ static void run_one_scenario(WaveType waveType, const WaveParameters &wp,
         wp_copy.direction = 0.0f;
     }
     if (vessel_rao) {
-        run_vessel_scenario(waveType,wp_copy,duration,vessel_feet,moving);
+        run_vessel_scenario(waveType,wp_copy,duration,vessel_feet,moving,vessel_heading);
         return;
     }
     std::string filename = WaveFileNaming::generate(FileKind::Data, waveType, wp_copy);
@@ -354,11 +357,12 @@ static void run_one_scenario(WaveType waveType, const WaveParameters &wp,
     std::cout << "Wrote " << filename << "\n";
 }
 
-static void run_all_wave_types(const WaveParameters &wp, int idx, bool vessel_rao, double duration, int vessel_feet, bool moving) {
+static void run_all_wave_types(const WaveParameters &wp, int idx, bool vessel_rao, double duration,
+                               int vessel_feet, bool moving, double vessel_heading) {
     for (WaveType wt : {WaveType::GERSTNER, WaveType::JONSWAP,
                         WaveType::FENTON, WaveType::PMSTOKES,
                         WaveType::CNOIDAL}) {
-        run_one_scenario(wt, wp, vessel_rao, duration, vessel_feet,moving);
+        run_one_scenario(wt, wp, vessel_rao, duration, vessel_feet,moving,vessel_heading);
     }
     if (idx >= 0) {
         std::cout << "Wave index " << idx << " complete.\n";
@@ -370,13 +374,21 @@ int main(int argc, char** argv) try {
     int index=-1;
     bool vessel_rao=false;
     bool moving=false;
+    bool southbound=false;
     int vessel_feet=28;
     double duration=TEST_DURATION_S;
     std::filesystem::path output;
     for (int i=1; i<argc; ++i) {
         const std::string arg=argv[i];
         if (arg=="--vessel-rao") vessel_rao=true;
-        else if (arg=="--vessel-moving") { vessel_rao=true; moving=true; }
+        else if (arg=="--vessel-moving" || arg=="--vessel-moving-south") {
+            const bool south=arg=="--vessel-moving-south";
+            if (moving && southbound!=south)
+                throw std::invalid_argument("choose only one moving-vessel direction");
+            vessel_rao=true;
+            moving=true;
+            southbound=south;
+        }
         else if (arg=="--vessel-length-ft" && i+1<argc) {
             const std::string value=argv[++i];
             if (value!="28" && value!="34" && value!="42" && value!="50")
@@ -394,20 +406,22 @@ int main(int argc, char** argv) try {
         } else if (arg.size()==1 && arg[0]>='0' && arg[0]<='3' && index==-1) {
             index=arg[0]-'0';
         } else {
-            throw std::invalid_argument("Usage: waves_sim [--vessel-rao | --vessel-moving] [--vessel-length-ft 28|34|42|50] [--output-dir DIR] [--duration SECONDS] [wave_index 0..3]");
+            throw std::invalid_argument("Usage: waves_sim [--vessel-rao | --vessel-moving | --vessel-moving-south] [--vessel-length-ft 28|34|42|50] [--output-dir DIR] [--duration SECONDS] [wave_index 0..3]");
         }
     }
     if (output.empty() && vessel_rao)
-        output="vessel-rao-"+std::to_string(vessel_feet)+"ft"+(moving ? "-5kn" : "");
+        output="vessel-rao-"+std::to_string(vessel_feet)+"ft"+
+            (southbound ? "-5kn-south" : moving ? "-5kn" : "");
     if (!output.empty()) {
         std::filesystem::create_directories(output);
         std::filesystem::current_path(output);
     }
+    const double vessel_heading=southbound ? M_PI : 0.0;
     if (index>=0) {
-        run_all_wave_types(waveParamsList[index],index,vessel_rao,duration,vessel_feet,moving);
+        run_all_wave_types(waveParamsList[index],index,vessel_rao,duration,vessel_feet,moving,vessel_heading);
     } else {
         for (size_t idx = 0; idx < waveParamsList.size(); ++idx)
-            run_all_wave_types(waveParamsList[idx],static_cast<int>(idx),vessel_rao,duration,vessel_feet,moving);
+            run_all_wave_types(waveParamsList[idx],static_cast<int>(idx),vessel_rao,duration,vessel_feet,moving,vessel_heading);
         std::cout << "All wave data generation complete.\n";
     }
     return 0;
