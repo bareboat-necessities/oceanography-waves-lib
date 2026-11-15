@@ -20,7 +20,7 @@ def package(root, duration=1200):
         with original["wave_tracker_data.csv"].open() as source:
             validate_timestamps(source, "wave_tracker_data.csv", 30)
     variants = [("sim-data-files.zip", {})]
-    for feet, suffix in ((feet, suffix) for suffix in ("", "-5kn") for feet in (28, 34, 42, 50)):
+    for feet, suffix in ((feet, suffix) for suffix in ("", "-5kn", "-5kn-south") for feet in (28, 34, 42, 50)):
         vessel = root / f"vessel-rao-{feet}ft{suffix}"
         response = {p.name: p for p in vessel.glob("*.csv")}
         if not wave_names or set(response) != wave_names:

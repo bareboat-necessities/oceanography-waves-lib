@@ -23,12 +23,12 @@ def check():
         original = sorted(root.glob("wave_data_*.csv"))
         assert len(original) == 20
         prior = None
-        for feet, moving in ((feet, moving) for moving in (False, True) for feet in (28, 34, 42, 50)):
-            suffix = "-5kn" if moving else ""
+        variants = (("", None, 0), ("-5kn", "--vessel-moving", 0),
+                    ("-5kn-south", "--vessel-moving-south", 180))
+        for feet, (suffix, option, heading) in ((feet, variant) for variant in variants for feet in (28, 34, 42, 50)):
             response = root / f"vessel-rao-{feet}ft{suffix}"
-            subprocess.run([str(executable), "--vessel-length-ft", str(feet), "--duration", "0.05",
-                            "--output-dir", str(response)] + (["--vessel-moving"] if moving else []),
-                           check=True, stdout=subprocess.DEVNULL)
+            subprocess.run([str(executable), "--vessel-length-ft", str(feet), "--duration", "0.05"]
+                           + ([option] if option else []), cwd=root, check=True, stdout=subprocess.DEVNULL)
             assert len(list(response.glob("*.csv"))) == 28
             signature = (response / original[0].name).read_bytes()
             assert signature != prior, "Different hulls must produce different motion"
@@ -41,15 +41,20 @@ def check():
                 assert any(a != b for a, b in zip(source, vessel)), path.name
                 for row in vessel:
                     assert len(row) == 23 and all(math.isfinite(float(v)) for v in row.values()), path.name
-                    if moving:
-                        assert abs(float(row["yaw_deg"])-3*math.sin(2*math.pi*float(row["time"])/120)) < 1e-7
-                        assert float(row["vel_x"]) > 0, "Moving vessel must advance northward"
+                    if option:
+                        expected_yaw = heading + 3*math.sin(2*math.pi*float(row["time"])/120)
+                        assert abs(float(row["yaw_deg"])-expected_yaw) < (1e-5 if heading else 1e-7)
+                        direction = -1 if heading == 180 else 1
+                        assert direction*float(row["vel_x"]) > 0, "Moving vessel must advance along selected heading"
                     w, x, y, z = [float(row[f"q_wb_zu_{c}"]) for c in "wxyz"]
                     assert abs(w*w+x*x+y*y+z*z-1) < 3e-6, path.name
                     # Independently rotate specific force back into world axes.
                     rotation = [[1-2*(y*y+z*z), 2*(x*y-z*w), 2*(x*z+y*w)],
                                 [2*(x*y+z*w), 1-2*(x*x+z*z), 2*(y*z-x*w)],
                                 [2*(x*z-y*w), 2*(y*z+x*w), 1-2*(x*x+y*y)]]
+                    yaw = math.degrees(math.atan2(rotation[0][1], rotation[0][0]))
+                    yaw_error = (yaw-float(row["yaw_deg"])+180) % 360-180
+                    assert abs(yaw_error) < 2e-5, "Quaternion must agree with yaw across 180 degrees"
                     body = [float(row[f"acc_b{c}"]) for c in "xyz"]
                     recovered = [sum(rotation[j][i]*body[j] for j in range(3)) for i in range(3)]
                     recovered[2] -= 9.80665
@@ -62,9 +67,10 @@ def check():
             for step in range(2, 6001):
                 source.write(f"{step / 200:.17g},0,0,0,0\n")
         paths = packaging.package(root, duration=0.05)
-        assert len(paths) == 9
+        assert len(paths) == 13
         assert {p.name for p in paths if "5kn" in p.name} == {
-            f"sim-data-files-vessel-rao-{feet}ft-5kn.zip" for feet in (28, 34, 42, 50)}
+            f"sim-data-files-vessel-rao-{feet}ft-{suffix}.zip"
+            for suffix in ("5kn", "5kn-south") for feet in (28, 34, 42, 50)}
         for vessel_zip in paths[1:]:
             with zipfile.ZipFile(paths[0]) as a, zipfile.ZipFile(vessel_zip) as b:
                 assert a.namelist() == b.namelist()
@@ -99,7 +105,12 @@ def check():
             pass
         else:
             raise AssertionError("Packaging silently accepted a missing vessel record")
-    print("PASS: all 160 vessel records, clocks, IMU frames, heading, and nine replacement archives")
+        for options in (("--vessel-moving", "--vessel-moving-south"),
+                        ("--vessel-moving-south", "--vessel-moving")):
+            invalid = subprocess.run([str(executable), *options, "--duration", "0.05"],
+                                     cwd=root, capture_output=True, text=True)
+            assert invalid.returncode != 0 and "only one" in invalid.stderr
+    print("PASS: all 240 vessel records, clocks, IMU frames, heading, and thirteen replacement archives")
 
 
 if __name__ == "__main__":

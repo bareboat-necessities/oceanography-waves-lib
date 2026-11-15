@@ -79,47 +79,65 @@ void test_vessel_kinematics() {
 void test_moving_vessel() {
     const double pi=std::acos(-1.0), speed=5*1852.0/3600, yaw_amplitude=3*pi/180;
     const VesselRao::Parameters p;
-    const MovingVesselRao calm({},p);
     constexpr double dt=1e-4;
-    for (double t : {0.0,17.3,30.0,60.0,90.0,120.0,750.3,1199.9}) {
-        const auto path=calm.track(t), lo=calm.track(t-dt), hi=calm.track(t+dt);
-        require_near(path.velocity.norm(),speed,0,1e-14,"Prescribed speed is exactly five knots");
-        require_near(path.heading,yaw_amplitude*std::sin(2*pi*t/120),0,1e-14,
-                     "Heading oscillates +/-3 degrees around north every 120 seconds");
-        require(((hi.displacement-lo.displacement)/(2*dt)-path.velocity).norm()<2e-8,
-                "Integrated steering trajectory differentiates to prescribed velocity");
-        require(((hi.velocity-lo.velocity)/(2*dt)-path.acceleration).norm()<1e-10,
-                "Turn acceleration differentiates velocity");
-        const auto st=calm.state(t);
-        require((st.acceleration-path.acceleration).norm()<1e-14,"Calm sea retains turn acceleration");
-        require_near(st.gyro_body.z(),path.heading_rate,0,1e-14,"Calm sea gyro measures steering yaw rate");
+    for (double heading : {0.0,pi}) {
+        auto hull=p;
+        hull.heading=heading;
+        const MovingVesselRao calm({},hull);
+        for (double t : {0.0,17.3,30.0,60.0,90.0,120.0,750.3,1199.9}) {
+            const auto path=calm.track(t), lo=calm.track(t-dt), hi=calm.track(t+dt);
+            require_near(path.velocity.norm(),speed,0,1e-14,"Prescribed speed is exactly five knots");
+            require_near(path.heading,heading+yaw_amplitude*std::sin(2*pi*t/120),0,1e-14,
+                         "Heading oscillates +/-3 degrees around north or south every 120 seconds");
+            require(((hi.displacement-lo.displacement)/(2*dt)-path.velocity).norm()<2e-8,
+                    "Integrated steering trajectory differentiates to prescribed velocity");
+            require(((hi.velocity-lo.velocity)/(2*dt)-path.acceleration).norm()<1e-10,
+                    "Turn acceleration differentiates velocity");
+            const auto st=calm.state(t);
+            require((st.acceleration-path.acceleration).norm()<1e-14,"Calm sea retains turn acceleration");
+            require_near(st.gyro_body.z(),path.heading_rate,0,1e-14,"Calm sea gyro measures steering yaw rate");
+            if (heading==pi) {
+                const auto north=MovingVesselRao({},p).track(t);
+                require((path.displacement+north.displacement).norm()<1e-12 &&
+                        (path.velocity+north.velocity).norm()<1e-14 &&
+                        (path.acceleration+north.acceleration).norm()<1e-14,
+                        "Southbound steering track is the northbound track rotated by 180 degrees");
+            }
+        }
+        require_near(calm.track(120).displacement.y(),0,0,1e-12,"No net cross-track drift over a steering cycle");
+        require(calm.track(120).displacement.x()*std::cos(heading)>308,
+                "Mean track advances along the selected north/south heading");
     }
-    require_near(calm.track(120).displacement.y(),0,0,1e-12,"No net westward drift over a steering cycle");
-    require(calm.track(120).displacement.x()>308,"Mean track is northward");
 
     // Fixed heading gives a closed-form Doppler-shifted single-wave solution,
     // including negative encounter frequency when overtaking following waves.
+    // Southbound head seas increase encounter frequency with the same waves.
     MovingVesselRao::Motion straight;
     straight.heading_amplitude=0;
-    for (double omega : {1.1,5.0}) {
-        const double k=omega*omega/p.gravity, encounter=omega-k*speed;
-        const WaveHarmonic w{0.3,omega,k,0,0.7};
-        const MovingVesselRao vessel({w},p,straight);
-        const auto h=VesselRao({}).encounterTransfer(encounter,k,0,0);
-        const auto st=vessel.state(2.7);
-        const auto phase=std::polar(w.amplitude,w.phase-encounter*2.7);
-        const auto z=h[2]*phase;
-        require_near(st.displacement.z(),z.real(),0,1e-12,"Encounter phase uses incident k and moving position");
-        require_near(st.velocity.z(),encounter*z.imag(),0,1e-12,"Encounter velocity has the signed frequency");
-        require_near(st.acceleration.z(),-encounter*encounter*z.real(),0,1e-12,
-                     "Encounter acceleration uses encounter frequency squared");
+    for (double heading : {0.0,pi}) {
+        auto hull=p;
+        hull.heading=heading;
+        for (double omega : {1.1,5.0}) {
+            const double k=omega*omega/p.gravity;
+            const double encounter=heading==pi ? omega+k*speed : omega-k*speed;
+            const WaveHarmonic w{0.3,omega,k,0,0.7};
+            const MovingVesselRao vessel({w},hull,straight);
+            const auto h=VesselRao({},hull).encounterTransfer(encounter,k,0,heading);
+            const auto st=vessel.state(2.7);
+            const auto phase=std::polar(w.amplitude,w.phase-encounter*2.7);
+            const auto z=h[2]*phase;
+            require_near(st.displacement.z(),z.real(),0,1e-12,"Encounter phase uses incident k and moving position");
+            require_near(st.velocity.z(),encounter*z.imag(),0,1e-12,"Encounter velocity has the signed frequency");
+            require_near(st.acceleration.z(),-encounter*encounter*z.real(),0,1e-12,
+                         "Encounter acceleration uses encounter frequency squared");
+        }
     }
 
     const std::vector<WaveHarmonic> waves{{0.4,1.3,1.3*1.3/p.gravity,0.9,0.7},
                                           {0.15,2.1,2.1*2.1/p.gravity,-0.5,1.8}};
-    for (int feet : {28,34,42,50}) {
+    for (int feet : {28,34,42,50}) for (double heading : {0.4,pi}) {
         auto hull=VesselRao::sailboat(feet);
-        hull.heading=0.4;
+        hull.heading=heading;
         const MovingVesselRao vessel(waves,hull);
         for (double t : {0.0,17.3,30.0,60.0,90.0,750.3,1199.9}) {
             const auto st=vessel.state(t), lo=vessel.state(t-dt), hi=vessel.state(t+dt);
