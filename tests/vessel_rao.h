@@ -84,11 +84,11 @@ void test_moving_vessel() {
         auto hull=p;
         hull.heading=heading;
         const MovingVesselRao calm({},hull);
-        for (double t : {0.0,17.3,30.0,60.0,90.0,120.0,750.3,1199.9}) {
+        for (double t : {0.0,5.0,10.0,15.0,17.3,20.0,750.3,1199.9}) {
             const auto path=calm.track(t), lo=calm.track(t-dt), hi=calm.track(t+dt);
             require_near(path.velocity.norm(),speed,0,1e-14,"Prescribed speed is exactly five knots");
-            require_near(path.heading,heading+yaw_amplitude*std::sin(2*pi*t/120),0,1e-14,
-                         "Heading oscillates +/-3 degrees around north or south every 120 seconds");
+            require_near(path.heading,heading+yaw_amplitude*std::sin(2*pi*t/20),0,1e-14,
+                         "Heading oscillates +/-3 degrees around north or south every 20 seconds");
             require(((hi.displacement-lo.displacement)/(2*dt)-path.velocity).norm()<2e-8,
                     "Integrated steering trajectory differentiates to prescribed velocity");
             require(((hi.velocity-lo.velocity)/(2*dt)-path.acceleration).norm()<1e-10,
@@ -104,8 +104,8 @@ void test_moving_vessel() {
                         "Southbound steering track is the northbound track rotated by 180 degrees");
             }
         }
-        require_near(calm.track(120).displacement.y(),0,0,1e-12,"No net cross-track drift over a steering cycle");
-        require(calm.track(120).displacement.x()*std::cos(heading)>308,
+        require_near(calm.track(20).displacement.y(),0,0,1e-12,"No net cross-track drift over a steering cycle");
+        require(calm.track(20).displacement.x()*std::cos(heading)>51.4,
                 "Mean track advances along the selected north/south heading");
     }
 
@@ -139,7 +139,7 @@ void test_moving_vessel() {
         auto hull=VesselRao::sailboat(feet);
         hull.heading=heading;
         const MovingVesselRao vessel(waves,hull);
-        for (double t : {0.0,17.3,30.0,60.0,90.0,750.3,1199.9}) {
+        for (double t : {0.0,5.0,10.0,15.0,17.3,20.0,750.3,1199.9}) {
             const auto st=vessel.state(t), lo=vessel.state(t-dt), hi=vessel.state(t+dt);
             require(((hi.displacement-lo.displacement)/(2*dt)-st.velocity).norm()<1e-7,
                     "Moving RAO velocity differentiates total displacement");

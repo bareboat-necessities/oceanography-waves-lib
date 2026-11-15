@@ -319,12 +319,12 @@ heading is toward port/west, rather than a clockwise compass bearing.
 The speed along the instantaneous heading is exactly 5 kn = 2.572222222… m/s:
 
 ```math
-\psi(t)=\psi_0+3^\circ\sin(2\pi t/120\,\mathrm{s}),\qquad
+\psi(t)=\psi_0+3^\circ\sin(2\pi t/20\,\mathrm{s}),\qquad
 \dot{\mathbf X}=U(\cos\psi,\sin\psi,0),\qquad
 \ddot{\mathbf X}=U\dot\psi(-\sin\psi,\cos\psi,0).
 ```
 
-The 120-second cycle has a maximum yaw rate of 0.15708 deg/s. Over a complete
+The 20-second cycle has a maximum yaw rate of 0.94248 deg/s. Over a complete
 cycle lateral travel cancels; progress along the selected north/south direction
 averages about 4.9966 kn.
 The Fourier/Bessel integral of the velocity defines position from X(0)=0,
@@ -387,7 +387,9 @@ integer-index/double clock introduced in version 1.3.1.
 Underway state columns use nine significant digits to retain float precision
 after kilometres of travel. Southbound Euler yaw is continuous around 180
 degrees (177 to 183), rather than wrapped at 180; the quaternion describes the
-same attitude. Existing stationary and northbound CSV calculations are unchanged.
+same attitude. Surface and stationary CSV calculations are unchanged. Starting
+with version 1.4.0, both underway presets use the 20-second steering cycle;
+older northbound release archives retain their original 120-second cycle.
 
 `gen_sim_data.sh` generates all twelve vessel directories. Packaging requires
 all thirteen datasets (surface, four stationary hulls, four northbound hulls,

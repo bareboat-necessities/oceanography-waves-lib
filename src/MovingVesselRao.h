@@ -11,7 +11,7 @@ public:
     struct Motion {
         double speed = 5.0*1852.0/3600.0; // m/s; constant speed along heading
         double heading_amplitude = 3.0*std::acos(-1.0)/180.0;
-        double heading_period = 120.0; // s
+        double heading_period = 20.0; // s; shared by northbound and southbound presets
     };
     struct Track {
         Eigen::Vector3d displacement = Eigen::Vector3d::Zero();

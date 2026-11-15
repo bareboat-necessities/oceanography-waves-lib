@@ -115,7 +115,7 @@ For a boat moving at **5 kn about north with a slow ±3° heading oscillation**:
 ./waves_sim --vessel-moving --vessel-length-ft 28
 ```
 
-The heading is `3° sin(2πt / 120 s)`; speed is 5 kn along the instantaneous
+The heading is `3° sin(2πt / 20 s)`; speed is 5 kn along the instantaneous
 heading. World +x is north, +y west, and +z up. The output directory is
 `vessel-rao-28ft-5kn/`. Choose 34, 42, or 50 for the other hull presets.
 The generator/package scripts also produce four separate archives:
@@ -126,13 +126,13 @@ and wave motion. These additional simulation ZIPs and their audits are required
 release assets starting with version 1.3.0.
 
 For the corresponding **southbound 5 kn head-sea case**, retaining the same
-±3° / 120-second heading oscillation:
+±3° / 20-second heading oscillation:
 
 ```bash
 ./waves_sim --vessel-moving-south --vessel-length-ft 28
 ```
 
-The heading is `180° + 3° sin(2πt / 120 s)` and the output directory is
+The heading is `180° + 3° sin(2πt / 20 s)` and the output directory is
 `vessel-rao-28ft-5kn-south/`. The scripts generate four additional archives,
 **`sim-data-files-vessel-rao-<size>ft-5kn-south.zip`**, for 28, 34, 42 and 50 ft.
 The regular waves propagate north (+x); the directional spectra are centered
@@ -142,6 +142,8 @@ bow-quartering seas. Directions describe wave travel, not where waves come
 from. The incident waves and their seeds stay the same; reversing the vessel
 changes the encounter frequency and its response. The southbound ZIPs and
 their audits are required release assets starting with version 1.4.0.
+Both underway presets use the 20-second cycle starting with version 1.4.0;
+the older northbound release archives retain their original 120-second cycle.
 
 The underway model samples the incident wave phase along the prescribed track
 and evaluates the existing estimated RAO at the signed encounter frequency and

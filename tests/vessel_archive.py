@@ -42,7 +42,7 @@ def check():
                 for row in vessel:
                     assert len(row) == 23 and all(math.isfinite(float(v)) for v in row.values()), path.name
                     if option:
-                        expected_yaw = heading + 3*math.sin(2*math.pi*float(row["time"])/120)
+                        expected_yaw = heading + 3*math.sin(2*math.pi*float(row["time"])/20)
                         assert abs(float(row["yaw_deg"])-expected_yaw) < (1e-5 if heading else 1e-7)
                         direction = -1 if heading == 180 else 1
                         assert direction*float(row["vel_x"]) > 0, "Moving vessel must advance along selected heading"
